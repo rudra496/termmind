@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "termind"
+version = "0.1.0"
+description = "A modern, open-source AI terminal assistant"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [{name = "TermMind Contributors"}]
+keywords = ["ai", "cli", "terminal", "llm", "chatbot", "coding"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development",
+]
+dependencies = [
+    "httpx>=0.24",
+    "prompt_toolkit>=3.0",
+    "rich>=13.0",
+    "click>=8.0",
+]
+
+[project.scripts]
+termind = "termind.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/nicepkg/termmind"
+Repository = "https://github.com/nicepkg/termmind"
