@@ -5,6 +5,7 @@ import fnmatch
 import os
 import re
 import shutil
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -12,23 +13,37 @@ from typing import Dict, List, Optional, Tuple
 _edit_history: List[Tuple[str, str, str]] = []  # (filepath, old_content, timestamp)
 
 
+def _detect_encoding(path: Path) -> str:
+    """Detect file encoding by trying common encodings."""
+    for enc in ("utf-8", "utf-8-sig", "latin-1", "cp1252", "ascii"):
+        try:
+            path.read_text(encoding=enc)
+            return enc
+        except (UnicodeDecodeError, UnicodeError):
+            continue
+    return "utf-8"
+
+
 def read_file(path: str, max_chars: int = 100_000) -> Optional[str]:
-    """Read file content, respecting size limits."""
+    """Read file content with encoding detection, respecting size limits."""
     p = Path(path)
     if not p.exists():
         return None
+    if not p.is_file():
+        return None
+    enc = _detect_encoding(p)
     if p.stat().st_size > max_chars:
-        return p.read_text(errors="replace")[:max_chars] + f"\n\n[... truncated at {max_chars} chars]"
-    return p.read_text(errors="replace")
+        return p.read_text(encoding=enc, errors="replace")[:max_chars] + f"\n\n[... truncated at {max_chars} chars]"
+    return p.read_text(encoding=enc, errors="replace")
 
 
 def write_file(path: str, content: str) -> None:
-    """Write content to a file, creating parent dirs."""
+    """Write content to a file, creating parent dirs. Tracks for undo."""
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     old = p.read_text(errors="replace") if p.exists() else ""
-    p.write_text(content)
-    _edit_history.append((str(p.resolve()), old, __import__("time").ctime()))
+    p.write_text(content, encoding="utf-8")
+    _edit_history.append((str(p.resolve()), old, time.ctime()))
 
 
 def edit_file(path: str, old_text: str, new_text: str) -> bool:
@@ -41,8 +56,86 @@ def edit_file(path: str, old_text: str, new_text: str) -> bool:
     original = content
     content = content.replace(old_text, new_text, 1)
     write_file(path, content)
-    _edit_history[-1] = (_edit_history[-1][0], original, _edit_history[-1][2])  # fix old_content
+    _edit_history[-1] = (_edit_history[-1][0], original, _edit_history[-1][2])
     return True
+
+
+def create_file(path: str, content: str = "") -> bool:
+    """Create a new file. Returns False if it already exists."""
+    p = Path(path)
+    if p.exists():
+        return False
+    write_file(path, content)
+    return True
+
+
+def delete_file(path: str, confirm: bool = True) -> bool:
+    """Delete a file. Returns True if deleted."""
+    p = Path(path)
+    if not p.exists():
+        return False
+    if confirm:
+        # Caller should handle confirmation
+        pass
+    old = p.read_text(errors="replace") if p.is_file() else ""
+    p.unlink()
+    _edit_history.append((str(p.resolve()), old, f"deleted {time.ctime()}"))
+    return True
+
+
+def backup_file(path: str) -> Optional[str]:
+    """Create a .bak backup. Returns backup path or None."""
+    p = Path(path)
+    if not p.exists():
+        return None
+    bak_path = str(p) + ".bak"
+    shutil.copy2(str(p), bak_path)
+    return bak_path
+
+
+def get_file_info(path: str) -> Optional[Dict[str, object]]:
+    """Get detailed file info: size, mtime, encoding, language, lines."""
+    p = Path(path)
+    if not p.exists():
+        return None
+    stat = p.stat()
+    content = read_file(path)
+    lines = content.count("\n") + 1 if content else 0
+    ext_map = {
+        ".py": "python", ".js": "javascript", ".ts": "typescript", ".go": "go",
+        ".rs": "rust", ".java": "java", ".rb": "ruby", ".c": "c", ".cpp": "cpp",
+        ".h": "c", ".cs": "csharp", ".php": "php", ".sh": "bash", ".bash": "bash",
+        ".yaml": "yaml", ".yml": "yaml", ".toml": "toml", ".json": "json",
+        ".md": "markdown", ".html": "html", ".css": "css", ".sql": "sql",
+        ".swift": "swift", ".kt": "kotlin", ".scala": "scala", ".lua": "lua",
+        ".r": "r", ".dart": "dart",
+    }
+    ext = p.suffix.lower()
+    language = ext_map.get(ext)
+    fn_lower = p.name.lower()
+    if fn_lower in ("dockerfile",):
+        language = "docker"
+    elif fn_lower in ("makefile",):
+        language = "makefile"
+    return {
+        "path": str(p),
+        "name": p.name,
+        "size": stat.st_size,
+        "size_human": _human_size(stat.st_size),
+        "mtime": time.ctime(stat.st_mtime),
+        "encoding": _detect_encoding(p),
+        "language": language,
+        "lines": lines,
+    }
+
+
+def _human_size(size: int) -> str:
+    """Format bytes as human-readable size."""
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024:
+            return f"{size:.1f} {unit}" if unit != "B" else f"{size} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
 
 
 def apply_diff(path: str, diff_text: str) -> bool:
@@ -52,8 +145,6 @@ def apply_diff(path: str, diff_text: str) -> bool:
         return False
     lines = content.splitlines(keepends=True)
     try:
-        patch = difflib.unified_diff(lines, lines, fromfile="a", tofile="b")
-        # Parse the diff manually for simplicity
         new_lines = _apply_unified_diff(lines, diff_text)
         if new_lines is not None:
             original = content
@@ -74,7 +165,6 @@ def _apply_unified_diff(original: List[str], diff_text: str) -> Optional[List[st
     while i < len(diff_lines):
         line = diff_lines[i].rstrip("\n")
         if line.startswith("@@"):
-            # Parse hunk header
             match = re.match(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", line)
             if not match:
                 i += 1
@@ -82,7 +172,6 @@ def _apply_unified_diff(original: List[str], diff_text: str) -> Optional[List[st
             old_start = int(match.group(1))
             old_count = int(match.group(2) or 1)
             new_count = int(match.group(4) or 1)
-            # Skip to changes
             i += 1
             removals = []
             additions = []
@@ -104,10 +193,8 @@ def _apply_unified_diff(original: List[str], diff_text: str) -> Optional[List[st
                 else:
                     break
             idx = old_start - 1 + offset
-            # Remove old lines
             if removals:
                 end = idx + len(removals)
-                removed = result[idx:end]
                 result[idx:end] = []
             result[idx:idx] = additions
             offset += len(additions) - len(removals)
@@ -144,11 +231,15 @@ def find_files(
 def search_in_files(query: str, directory: str = ".") -> List[Tuple[str, int, str]]:
     """Search for text in files. Returns (path, line_no, line)."""
     results = []
+    try:
+        pattern = re.compile(query, re.IGNORECASE)
+    except re.error:
+        pattern = re.compile(re.escape(query), re.IGNORECASE)
     for path in find_files(directory):
         try:
             lines = Path(path).read_text(errors="replace").splitlines()
             for i, line in enumerate(lines, 1):
-                if query.lower() in line.lower():
+                if pattern.search(line):
                     results.append((path, i, line.strip()))
         except OSError:
             continue
@@ -157,7 +248,34 @@ def search_in_files(query: str, directory: str = ".") -> List[Tuple[str, int, st
     return results
 
 
+def grep_files(pattern: str, directory: str = ".", context_lines: int = 0) -> List[Dict[str, object]]:
+    """Grep through project files with optional context. Returns list of match dicts."""
+    results = []
+    try:
+        regex = re.compile(pattern)
+    except re.error:
+        regex = re.compile(re.escape(pattern))
+    for path in find_files(directory):
+        try:
+            lines = Path(path).read_text(errors="replace").splitlines()
+            for i, line in enumerate(lines):
+                if regex.search(line):
+                    context_before = lines[max(0, i - context_lines):i] if context_lines else []
+                    context_after = lines[i + 1:i + 1 + context_lines] if context_lines else []
+                    results.append({
+                        "path": path,
+                        "line": i + 1,
+                        "text": line.strip(),
+                        "context_before": context_before,
+                        "context_after": context_after,
+                    })
+        except OSError:
+            continue
+    return results[:100]
+
+
 def get_undo_history() -> List[Tuple[str, str, str]]:
+    """Return all edits in history."""
     return list(_edit_history)
 
 
@@ -171,6 +289,18 @@ def undo_last_edit() -> Optional[str]:
         p.write_text(old_content)
         return filepath
     return None
+
+
+def undo_all_edits() -> int:
+    """Undo all edits this session. Returns number of edits undone."""
+    count = 0
+    while _edit_history:
+        filepath, old_content, _ = _edit_history.pop()
+        p = Path(filepath)
+        if p.exists():
+            p.write_text(old_content)
+        count += 1
+    return count
 
 
 def get_session_diffs() -> List[Tuple[str, str]]:
@@ -195,19 +325,29 @@ def get_session_diffs() -> List[Tuple[str, str]]:
     return diffs
 
 
-def build_file_tree(directory: str = ".", max_depth: int = 3) -> str:
-    """Build a visual file tree string."""
+def compute_diff(original: str, modified: str, filename: str = "file") -> str:
+    """Generate unified diff between two strings."""
+    return "".join(difflib.unified_diff(
+        original.splitlines(keepends=True),
+        modified.splitlines(keepends=True),
+        fromfile=f"a/{filename}",
+        tofile=f"b/{filename}",
+    ))
+
+
+def build_file_tree(directory: str = ".", max_depth: int = 3, show_sizes: bool = False) -> str:
+    """Build a visual file tree string, optionally with file sizes."""
     d = Path(directory)
     if not d.exists():
         return ""
     ignores = _load_ignores(directory)
     lines = [d.name + "/"]
-    _walk_tree(d, lines, "", ignores, max_depth, 0)
+    _walk_tree(d, lines, "", ignores, max_depth, 0, show_sizes)
     return "\n".join(lines)
 
 
 def _walk_tree(
-    path: Path, lines: List[str], prefix: str, ignores: set, max_depth: int, depth: int
+    path: Path, lines: List[str], prefix: str, ignores: set, max_depth: int, depth: int, show_sizes: bool = False
 ) -> None:
     if depth >= max_depth:
         return
@@ -221,9 +361,10 @@ def _walk_tree(
         connector = "└── " if is_last else "├── "
         if entry.is_dir():
             lines.append(f"{prefix}{connector}{entry.name}/")
-            _walk_tree(entry, lines, prefix + ("    " if is_last else "│   "), ignores, max_depth, depth + 1)
+            _walk_tree(entry, lines, prefix + ("    " if is_last else "│   "), ignores, max_depth, depth + 1, show_sizes)
         else:
-            lines.append(f"{prefix}{connector}{entry.name}")
+            size_str = f" ({_human_size(entry.stat().st_size)})" if show_sizes else ""
+            lines.append(f"{prefix}{connector}{entry.name}{size_str}")
 
 
 def _load_ignores(directory: str) -> set:
@@ -236,7 +377,7 @@ def _load_ignores(directory: str) -> set:
                 line = line.strip()
                 if line and not line.startswith("#"):
                     patterns.add(line)
-    patterns.update(["__pycache__", ".git", "node_modules", ".venv", "venv", ".tox"])
+    patterns.update(["__pycache__", ".git", "node_modules", ".venv", "venv", ".tox", ".egg-info"])
     return patterns
 
 

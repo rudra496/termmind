@@ -1,5 +1,6 @@
 """TermMind CLI — the main entry point."""
 
+import asyncio
 import json
 import os
 import re
@@ -31,16 +32,18 @@ from .utils import estimate_tokens, render_markdown
 
 HISTORY_FILE = Path.home() / ".termind" / "history"
 BANNER = r"""
-[bold cyan]  ╔═══════════════════════════════╗
-  ║     [bold white]T e r m M i n d[/bold white]             ║
-  ║  [dim]AI Terminal Assistant v0.1.0[/dim]    ║
-  ╚═══════════════════════════════╝[/bold cyan]
+[bold cyan]  ╔═══════════════════════════════════╗
+  ║      [bold white]T e r m M i n d[/bold white]                ║
+  ║   [dim]AI Terminal Assistant v1.0.0[/dim]       ║
+  ║   [dim]7 Providers • Streaming • Plugins[/dim]    ║
+  ╚═══════════════════════════════════╝[/bold cyan]
 """
 
 SLASH_COMMANDS = [
-    "/edit", "/run", "/files", "/add", "/search", "/tree",
-    "/clear", "/save", "/load", "/model", "/provider",
-    "/cost", "/theme", "/undo", "/diff", "/status", "/git", "/help",
+    "/edit", "/run", "/files", "/add", "/remove", "/search", "/grep", "/tree",
+    "/clear", "/save", "/load", "/sessions", "/model", "/models", "/provider",
+    "/providers", "/cost", "/theme", "/themes", "/undo", "/diff", "/status",
+    "/git", "/export", "/compact", "/system", "/help", "/version", "/quit",
 ]
 
 
@@ -66,7 +69,6 @@ def _stream_response(client: APIClient, messages: List[dict], console: Console, 
     try:
         for chunk in client.chat_stream(messages, system_prompt):
             full += chunk
-        # Render the full response as markdown
         console.print()
         if full.strip():
             console.print(Markdown(full))
@@ -78,27 +80,17 @@ def _stream_response(client: APIClient, messages: List[dict], console: Console, 
     return full
 
 
-@click.group(invoke_without_command=True)
-@click.version_option(__version__, prog_name="termind")
-@click.pass_context
-def main(ctx: click.Context):
-    """TermMind — AI terminal assistant."""
-    if ctx.invoked_subcommand is None:
-        ctx.invoke(chat)
-
-
 def _interactive_init() -> dict:
     """Interactive setup wizard."""
     console = _get_console()
     console.print(BANNER)
     console.print("[bold]Welcome to TermMind! Let's set things up.[/bold]\n")
 
-    # Provider selection
     console.print("[info]Select a provider:[/info]")
     providers = list(PROVIDER_PRESETS.keys())
     for i, p in enumerate(providers):
         info = PROVIDER_PRESETS[p]
-        free = "[green]free[/green]" if info["cost_per_1k_input"] == 0 else ""
+        free = "[green]free[/green]" if info["cost_per_1k_input"] == 0 else f"${info['cost_per_1k_input']}/1k"
         key_req = "[dim](no key needed)[/dim]" if not info["requires_key"] else ""
         console.print(f"  [cyan]{i+1}[/cyan]. [command]{p}[/command] — {info['default_model']} {free} {key_req}")
 
@@ -106,22 +98,29 @@ def _interactive_init() -> dict:
     choice = max(0, min(choice, len(providers) - 1))
     provider = providers[choice]
     info = PROVIDER_PRESETS[provider]
-
     console.print(f"\n[success]Selected: {provider}[/success]")
 
-    # API key
     api_key = ""
     if info["requires_key"]:
         console.print(f"\nGet your API key at the provider's website.")
         api_key = click.prompt(f"[info]{provider} API key[/info]", default="", show_default=False)
+        # Test connection
+        console.print("[system]Testing connection...[/system]")
+        from .providers import get_provider
+        try:
+            p_instance = get_provider(provider, api_key=api_key, base_url=info["base_url"])
+            if p_instance.validate_connection():
+                console.print("[success]✅ Connection successful![/success]")
+            else:
+                console.print("[warning]⚠ Connection failed. Check your API key.[/warning]")
+        except Exception as e:
+            console.print(f"[warning]⚠ Connection test error: {e}[/warning]")
 
-    # Model
     console.print(f"\n[info]Available models:[/info]")
     for m in info["models"]:
         console.print(f"  [cyan]•[/cyan] {m}")
     model = click.prompt("[info]Model[/info]", default=info["default_model"])
 
-    # Temperature
     temp = click.prompt("[info]Temperature (0-2)[/info]", default=0.7, type=float)
 
     cfg = {
@@ -131,6 +130,13 @@ def _interactive_init() -> dict:
         "max_tokens": 4096,
         "temperature": temp,
         "theme": "dark",
+        "stream": True,
+        "auto_context": True,
+        "max_context_files": 20,
+        "max_context_tokens": 100000,
+        "confirm_edits": True,
+        "confirm_runs": True,
+        "history_size": 100,
         "system_prompt": "You are TermMind, a helpful AI assistant in the terminal. "
             "You help with coding, file operations, and general questions. "
             "Be concise and practical. When showing code, use markdown code blocks with language hints.",
@@ -139,6 +145,15 @@ def _interactive_init() -> dict:
     console.print(f"\n[success]✅ Configuration saved to ~/.termind/config.json[/success]")
     console.print(f"[dim]Provider: {provider} | Model: {model}[/dim]\n")
     return cfg
+
+
+@click.group(invoke_without_command=True)
+@click.version_option(__version__, prog_name="termind")
+@click.pass_context
+def main(ctx: click.Context):
+    """TermMind — AI terminal assistant with 7 providers, streaming, plugins, and more."""
+    if ctx.invoked_subcommand is None:
+        ctx.invoke(chat)
 
 
 @main.command()
@@ -173,7 +188,6 @@ def ask(question: Optional[str], provider: Optional[str], model: Optional[str]):
         temperature=cfg.get("temperature", 0.7),
     )
 
-    # Build context from current directory
     cwd = os.getcwd()
     context = build_context(question, cwd)
     user_msg = f"{question}\n\n{context}" if context else question
@@ -195,18 +209,14 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
     """Start interactive chat session."""
     cfg = load_config()
 
-    # Check if configured
     needs_key = PROVIDER_PRESETS.get(cfg.get("provider"), {}).get("requires_key", True)
-    if not cfg.get("api_key") and needs_key:
-        # Check if ollama is available
-        if cfg.get("provider") != "ollama":
-            _interactive_init()
-            cfg = load_config()
+    if not cfg.get("api_key") and needs_key and cfg.get("provider") != "ollama":
+        _interactive_init()
+        cfg = load_config()
 
     console = _get_console()
     console.print(BANNER)
 
-    # Show status
     p = cfg.get("provider", "ollama")
     m = cfg.get("model", "unknown")
     console.print(f"[dim]Provider: {p} | Model: {m} | CWD: {os.getcwd()}[/dim]")
@@ -214,7 +224,6 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
         console.print("[dim]Git: detected ✓[/dim]")
     console.print("[dim]Type /help for commands • Shift+Enter for multiline • Ctrl+C to quit[/dim]\n")
 
-    # Setup client
     client = APIClient(
         provider=provider or cfg.get("provider"),
         api_key=cfg.get("api_key"),
@@ -225,11 +234,18 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
 
     system_prompt = system or cfg.get("system_prompt")
 
-    # State
     messages: List[dict] = []
     context_files: List[str] = []
 
-    # Prompt session
+    # Initialize plugins
+    from .plugins import discover_plugins
+    plugins = discover_plugins()
+    for plugin in plugins:
+        try:
+            plugin.on_start({"messages": messages, "client": client})
+        except Exception:
+            pass
+
     HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
     session = PromptSession(
         history=FileHistory(str(HISTORY_FILE)),
@@ -241,10 +257,14 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
 
     while True:
         try:
-            user_input = session.prompt(
-                "\n[prompt]❯ [/prompt]",
-            )
+            user_input = session.prompt("\n[prompt]❯ [/prompt]")
         except (EOFError, KeyboardInterrupt):
+            # Run plugin exit hooks
+            for plugin in plugins:
+                try:
+                    plugin.on_exit()
+                except Exception:
+                    pass
             console.print("\n[dim]👋 Bye![/dim]")
             break
 
@@ -252,27 +272,45 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
         if not user_input:
             continue
 
-        # Handle slash commands
         if user_input.startswith("/"):
-            handle_command(user_input[1:], user_input[1:], messages, client, console, os.getcwd(), context_files)
+            try:
+                handle_command(user_input[1:], user_input[1:], messages, client, console, os.getcwd(), context_files)
+            except SystemExit:
+                raise
+            except Exception as e:
+                console.print(f"[error]Command error: {e}[/error]")
             continue
 
-        # Add context
+        # Build context
         cwd = os.getcwd()
-        context = build_context(user_input, cwd, context_files)
+        if cfg.get("auto_context", True):
+            context = build_context(user_input, cwd, context_files)
+        else:
+            context = ""
         full_msg = f"{user_input}\n\n{context}" if context else user_input
 
         messages.append({"role": "user", "content": full_msg})
 
-        console.print(f"[system]🤖 Thinking...[/system]")
+        # Plugin hooks
+        for plugin in plugins:
+            try:
+                plugin.on_message(user_input, "user")
+            except Exception:
+                pass
+
+        console.print("[system]🤖 Thinking...[/system]")
         start = time.time()
         response = _stream_response(client, messages, console, system_prompt)
         elapsed = time.time() - start
 
         if response:
             messages.append({"role": "assistant", "content": response})
+            for plugin in plugins:
+                try:
+                    plugin.on_response(response)
+                except Exception:
+                    pass
 
-        # Cost footer
         tokens = client.total_tokens()
         if tokens:
             console.print(f"[cost]⚡ {tokens:,} tokens • {elapsed:.1f}s • ${client.get_cost():.6f}[/cost]")
@@ -280,16 +318,11 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
     # Auto-save on exit
     if messages:
         from .config import SESSIONS_DIR
+        from .sessions import save_session as _save
         SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
         name = time.strftime("%Y-%m-%d_%H-%M")
-        session_data = {
-            "name": name,
-            "messages": messages[-20:],  # Keep last 10 exchanges
-            "provider": client.provider,
-            "model": client.model,
-        }
-        with open(SESSIONS_DIR / f"{name}.json", "w") as f:
-            json.dump(session_data, f)
+        _save(name, messages[-40:], client.provider, client.model,
+              client.get_cost(), client.total_tokens(), context_files)
 
 
 @main.command()
@@ -301,21 +334,15 @@ def edit(filepath: str, instruction: Optional[str], provider: Optional[str], mod
     """Edit a file with AI assistance."""
     cfg = load_config()
     console = _get_console()
-
     full_path = os.path.abspath(filepath)
     content = read_file(full_path)
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
         return
-
     if not instruction:
         instruction = click.prompt("[info]Edit instruction[/info]")
 
-    client = APIClient(
-        provider=provider or cfg.get("provider"),
-        api_key=cfg.get("api_key"),
-        model=model or cfg.get("model"),
-    )
+    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
 
     prompt = f"""You are a code editor. Apply the requested edit to the file below.
 Output ONLY the complete new file content. No explanations, no markdown fences.
@@ -332,17 +359,14 @@ Instruction: {instruction}"""
         console.print(chunk, end="", highlight=False)
     console.print()
 
-    # Apply if it looks like code (not wrapped in fences)
     clean = response.strip()
     if clean.startswith("```"):
-        # Remove fences
         lines = clean.split("\n")
         if lines[0].startswith("```"):
             lines = lines[1:]
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         clean = "\n".join(lines)
-
     write_file(full_path, clean)
     console.print(f"[success]✅ File updated: {filepath}[/success]")
 
@@ -355,11 +379,7 @@ def review(path: str, provider: Optional[str], model: Optional[str]):
     """Review code in a directory or file."""
     cfg = load_config()
     console = _get_console()
-    client = APIClient(
-        provider=provider or cfg.get("provider"),
-        api_key=cfg.get("api_key"),
-        model=model or cfg.get("model"),
-    )
+    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
 
     target = os.path.abspath(path)
     p = Path(target)
@@ -376,8 +396,7 @@ def review(path: str, provider: Optional[str], model: Optional[str]):
         for f in files:
             c = read_file(f)
             if c:
-                rel = os.path.relpath(f, target)
-                parts.append(f"\n## {rel}\n```\n{c[:5000]}\n```")
+                parts.append(f"\n## {os.path.relpath(f, target)}\n```\n{c[:5000]}\n```")
         code_context = "\n".join(parts)
 
     prompt = f"""Review this code. Be constructive and concise. Check for:
@@ -400,21 +419,14 @@ def review(path: str, provider: Optional[str], model: Optional[str]):
 @click.option("--provider", "-p", help="Override provider")
 @click.option("--model", "-m", help="Override model")
 def explain(filepath: str, provider: Optional[str], model: Optional[str]):
-    """Explain a file."""
+    """Explain a file in plain English."""
     cfg = load_config()
     console = _get_console()
-
     content = read_file(filepath)
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
         return
-
-    client = APIClient(
-        provider=provider or cfg.get("provider"),
-        api_key=cfg.get("api_key"),
-        model=model or cfg.get("model"),
-    )
-
+    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
     prompt = f"""Explain this file clearly and concisely:
 - What does it do?
 - Key functions/classes and their purpose
@@ -422,7 +434,6 @@ def explain(filepath: str, provider: Optional[str], model: Optional[str]):
 
 File: {filepath}
 ```\n{content}\n```"""
-
     console.print(f"[system]🤖 Explaining {filepath}...[/system]\n")
     _stream_response(client, [{"role": "user", "content": prompt}], console)
 
@@ -433,53 +444,167 @@ File: {filepath}
 @click.option("--model", "-m", help="Override model")
 @click.option("--framework", "-f", default="pytest", help="Test framework")
 def test(filepath: str, provider: Optional[str], model: Optional[str], framework: str):
-    """Generate tests for a file."""
+    """Generate unit tests for a file."""
     cfg = load_config()
     console = _get_console()
-
     content = read_file(filepath)
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
         return
-
-    client = APIClient(
-        provider=provider or cfg.get("provider"),
-        api_key=cfg.get("api_key"),
-        model=model or cfg.get("model"),
-    )
-
+    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
     prompt = f"""Generate comprehensive tests using {framework} for this file.
 Output ONLY the test code, no explanations.
 
 File: {filepath}
 ```\n{content}\n```"""
-
     console.print(f"[system]🤖 Generating tests for {filepath}...[/system]\n")
     response = _stream_response(client, [{"role": "user", "content": prompt}], console)
-
-    # Auto-save tests
     if response:
         p = Path(filepath)
         test_file = p.parent / f"test_{p.stem}{p.suffix}"
         clean = response.strip()
-        # Remove code fences if present
         lines = clean.split("\n")
         if lines and lines[0].startswith("```"):
             lines = lines[1:]
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
-        test_content = "\n".join(lines)
-        write_file(str(test_file), test_content)
+        write_file(str(test_file), "\n".join(lines))
         console.print(f"\n[success]💾 Tests saved to: {test_file}[/success]")
+
+
+@main.command()
+@click.argument("filepath")
+@click.option("--provider", "-p", help="Override provider")
+@click.option("--model", "-m", help="Override model")
+def refactor(filepath: str, provider: Optional[str], model: Optional[str]):
+    """Suggest/implement refactoring for a file."""
+    cfg = load_config()
+    console = _get_console()
+    content = read_file(filepath)
+    if content is None:
+        console.print(f"[error]File not found: {filepath}[/error]")
+        return
+    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    prompt = f"""Suggest and implement refactoring for this file. Focus on:
+- DRY principle (remove duplication)
+- Better naming
+- Simpler logic
+- Modern patterns
+Output the complete refactored file.
+
+File: {filepath}
+```\n{content}\n```"""
+    console.print(f"[system]🤖 Refactoring {filepath}...[/system]\n")
+    response = _stream_response(client, [{"role": "user", "content": prompt}], console)
+    if response:
+        clean = response.strip()
+        lines = clean.split("\n")
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        console.print(f"\n[dim]Run /edit {filepath} to apply changes.[/dim]")
+
+
+@main.command()
+@click.argument("filepath")
+@click.option("--provider", "-p", help="Override provider")
+@click.option("--model", "-m", help="Override model")
+def docstring(filepath: str, provider: Optional[str], model: Optional[str]):
+    """Generate docstrings for a file."""
+    cfg = load_config()
+    console = _get_console()
+    content = read_file(filepath)
+    if content is None:
+        console.print(f"[error]File not found: {filepath}[/error]")
+        return
+    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    prompt = f"""Add comprehensive Google-style docstrings to all functions, classes, and methods in this file.
+Output ONLY the complete file with docstrings added. Keep all existing code unchanged.
+
+File: {filepath}
+```\n{content}\n```"""
+    console.print(f"[system]🤖 Adding docstrings to {filepath}...[/system]\n")
+    response = _stream_response(client, [{"role": "user", "content": prompt}], console)
+    if response:
+        clean = response.strip()
+        lines = clean.split("\n")
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        full_path = os.path.abspath(filepath)
+        write_file(full_path, "\n".join(lines))
+        console.print(f"\n[success]✅ Docstrings added: {filepath}[/success]")
+
+
+@main.command()
+@click.argument("filepath")
+@click.option("--provider", "-p", help="Override provider")
+@click.option("--model", "-m", help="Override model")
+def debug(filepath: str, provider: Optional[str], model: Optional[str]):
+    """Help debug issues in a file."""
+    cfg = load_config()
+    console = _get_console()
+    content = read_file(filepath)
+    if content is None:
+        console.print(f"[error]File not found: {filepath}[/error]")
+        return
+    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    prompt = f"""Debug this file. Identify:
+- Potential bugs and errors
+- Edge cases not handled
+- Possible runtime errors
+- Logic issues
+Suggest fixes with explanations.
+
+File: {filepath}
+```\n{content}\n```"""
+    console.print(f"[system]🤖 Debugging {filepath}...[/system]\n")
+    _stream_response(client, [{"role": "user", "content": prompt}], console)
+
+
+@main.command()
+@click.argument("filepath")
+@click.option("--to", "lang", required=True, help="Target language")
+@click.option("--provider", "-p", help="Override provider")
+@click.option("--model", "-m", help="Override model")
+def translate(filepath: str, lang: str, provider: Optional[str], model: Optional[str]):
+    """Translate comments and docstrings to another language."""
+    cfg = load_config()
+    console = _get_console()
+    content = read_file(filepath)
+    if content is None:
+        console.print(f"[error]File not found: {filepath}[/error]")
+        return
+    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    prompt = f"""Translate all comments and docstrings in this file to {lang}.
+Keep all code, variable names, and structure exactly the same.
+Only translate text in comments (# ...) and docstrings ("""  """).
+Output the complete file.
+
+File: {filepath}
+```\n{content}\n```"""
+    console.print(f"[system]🤖 Translating {filepath} to {lang}...[/system]\n")
+    response = _stream_response(client, [{"role": "user", "content": prompt}], console)
+    if response:
+        clean = response.strip()
+        lines = clean.split("\n")
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        full_path = os.path.abspath(filepath)
+        write_file(full_path, "\n".join(lines))
+        console.print(f"\n[success]✅ Translated: {filepath}[/success]")
 
 
 @main.command(name="history")
 def show_history():
     """Show saved chat sessions."""
     console = _get_console()
-    from .config import SESSIONS_DIR
-    SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
-    sessions = sorted(SESSIONS_DIR.glob("*.json"), reverse=True)
+    from .sessions import list_sessions
+    sessions = list_sessions()
     if not sessions:
         console.print("[system]No saved sessions.[/system]")
         return
@@ -489,19 +614,11 @@ def show_history():
     table.add_column("Provider")
     table.add_column("Model")
     table.add_column("Messages")
+    table.add_column("Tokens")
     table.add_column("Saved")
     for s in sessions[:20]:
-        try:
-            data = json.loads(s.read_text())
-            table.add_row(
-                s.stem,
-                data.get("provider", "?"),
-                data.get("model", "?"),
-                str(len(data.get("messages", [])) // 2),
-                data.get("saved_at", "?")[:16],
-            )
-        except (json.JSONDecodeError, OSError):
-            table.add_row(s.stem, "?", "?", "?", "?")
+        table.add_row(s["name"], s["provider"], s["model"], str(s["messages"]),
+                      f"{s['tokens']:,}", s["saved_at"][:16])
     console.print(table)
 
 
@@ -510,7 +627,6 @@ def config():
     """Show current configuration."""
     console = _get_console()
     cfg = load_config()
-    # Mask API key
     display = dict(cfg)
     if display.get("api_key"):
         key = display["api_key"]
@@ -518,5 +634,57 @@ def config():
     console.print_json(json=display)
 
 
-if __name__ == "__main__":
-    main()
+@main.command()
+def doctors():
+    """Check system health and dependencies."""
+    console = _get_console()
+    console.print("[bold]🏥 TermMind Health Check[/bold]\n")
+
+    import importlib
+    checks = [
+        ("Python", lambda: f"{sys.version}"),
+        ("click", lambda: importlib.import_module("click").__version__),
+        ("rich", lambda: importlib.import_module("rich").__version__),
+        ("httpx", lambda: importlib.import_module("httpx").__version__),
+        ("prompt_toolkit", lambda: importlib.import_module("prompt_toolkit").__version__),
+    ]
+    table = Table(border_style="dim")
+    table.add_column("Check", style="info")
+    table.add_column("Status")
+    table.add_column("Detail")
+
+    for name, check_fn in checks:
+        try:
+            result = check_fn()
+            table.add_row(name, "[success]✅[/success]", str(result))
+        except ImportError:
+            table.add_row(name, "[error]❌[/error]", "Not installed")
+
+    # Config check
+    cfg = load_config()
+    provider = cfg.get("provider", "ollama")
+    if cfg.get("api_key") or provider == "ollama":
+        table.add_row("API Key", "[success]✅[/success]", "Configured")
+    else:
+        table.add_row("API Key", "[warning]⚠[/warning]", "Not configured — run termind init")
+
+    # Git check
+    try:
+        result = subprocess.run(["git", "--version"], capture_output=True, text=True, timeout=5)
+        table.add_row("Git", "[success]✅[/success]", result.stdout.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        table.add_row("Git", "[warning]⚠[/warning]", "Not found")
+
+    # Connection check
+    from .providers import get_provider
+    try:
+        p = get_provider(provider, api_key=cfg.get("api_key", ""),
+                         base_url=PROVIDER_PRESETS.get(provider, {}).get("base_url", ""))
+        if p.validate_connection(timeout=5):
+            table.add_row("Provider connection", "[success]✅[/success]", f"{provider} is reachable")
+        else:
+            table.add_row("Provider connection", "[error]❌[/error]", f"{provider} unreachable")
+    except Exception as e:
+        table.add_row("Provider connection", "[error]❌[/error]", str(e))
+
+    console.print(table)
