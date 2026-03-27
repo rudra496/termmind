@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
-from termind.providers import (
+from termmind.providers import (
     BaseProvider,
     OpenAIProvider,
     AnthropicProvider,

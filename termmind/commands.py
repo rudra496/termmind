@@ -466,7 +466,7 @@ def cmd_diff(rest: str, messages, client, console, cwd, ctx_files):
                 ))
                 from .diff_engine import _parse_unified_diff
                 fd.hunks = _parse_unified_diff(diff_text)
-                fd.edit_type = fd.edit_type if fd.edit_type.value != "identical" else __import__("termind.diff_engine", fromlist=["EditType"]).EditType.REPLACE
+                fd.edit_type = fd.edit_type if fd.edit_type.value != "identical" else __import__("termmind.diff_engine", fromlist=["EditType"]).EditType.REPLACE
                 render_diff_inline(fd, console)
                 return
         console.print("[system]No changes recorded for this file.[/system]")
@@ -615,7 +615,7 @@ def cmd_export(rest: str, messages, client, console, cwd, ctx_files):
     if not content:
         console.print(f"[error]Session not found: {name}[/error]")
         return
-    out_path = os.path.join(cwd, f"termind_export_{name}.{fmt[:4]}")
+    out_path = os.path.join(cwd, f"termmind_export_{name}.{fmt[:4]}")
     with open(out_path, "w") as f:
         f.write(content)
     console.print(f"[success]📤 Exported to: {out_path}[/success]")

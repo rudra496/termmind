@@ -23,7 +23,7 @@ Thank you for your interest in contributing to TermMind! This guide covers every
 ### Clone & Install
 
 ```bash
-git clone https://github.com/nicepkg/termmind.git
+git clone https://github.com/rudra496/termmind.git
 cd termmind
 
 # Install in editable mode with dev dependencies
@@ -36,15 +36,15 @@ pip install -e .
 ### Verify Installation
 
 ```bash
-python -m termind.cli --version
-python -m termind.cli doctors
+python -m termmind.cli --version
+python -m termmind.cli doctors
 ```
 
 ### Project Structure
 
 ```
 termmind/
-├── termind/
+├── termmind/
 │   ├── __init__.py          # Version and metadata
 │   ├── cli.py               # CLI entry point (click commands)
 │   ├── api.py               # API client (HTTP, streaming)
@@ -176,7 +176,7 @@ TERMIND_TEST_PROVIDER=my_provider python -m pytest tests/test_providers.py -v
 
 ## Adding New Commands
 
-### CLI Commands (subcommands like `termind review`)
+### CLI Commands (subcommands like `termmind review`)
 
 Add a new `@main.command()` in `cli.py`:
 
@@ -246,8 +246,8 @@ class MyPlugin:
 ### Plugin Discovery
 
 Plugins are discovered from:
-1. `~/.termind/plugins/` directory
-2. Entry point: `termind.plugins` in installed packages
+1. `~/.termmind/plugins/` directory
+2. Entry point: `termmind.plugins` in installed packages
 
 ### Plugin Context
 
@@ -272,7 +272,7 @@ python -m pytest -v
 python -m pytest tests/test_context.py -v
 
 # With coverage
-python -m pytest --cov=termind --cov-report=term-missing
+python -m pytest --cov=termmind --cov-report=term-missing
 ```
 
 ### Writing Tests
@@ -281,7 +281,7 @@ Use pytest. Place tests in `tests/`:
 
 ```python
 import pytest
-from termind.context import extract_relevant_files, estimate_tokens
+from termmind.context import extract_relevant_files, estimate_tokens
 
 
 class TestContextBuilding:
@@ -311,7 +311,7 @@ class TestContextBuilding:
 from unittest.mock import patch, MagicMock
 
 def test_stream_response(capsys):
-    with patch("termind.cli.APIClient") as MockClient:
+    with patch("termmind.cli.APIClient") as MockClient:
         mock_instance = MockClient.return_value
         mock_instance.chat_stream.return_value = iter(["Hello", " world"])
         mock_instance.total_tokens.return_value = 5

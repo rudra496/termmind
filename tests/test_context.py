@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from termind.context import (
+from termmind.context import (
     build_context,
     clear_cache,
     extract_relevant_files,

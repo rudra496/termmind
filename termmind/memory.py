@@ -12,10 +12,10 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from .file_ops import find_files, read_file, _is_ignored
 
 # Storage layout:
-#   ~/.termind/memory/<project-hash>/index.json
-#   ~/.termind/memory/<project-hash>/meta.json
+#   ~/.termmind/memory/<project-hash>/index.json
+#   ~/.termmind/memory/<project-hash>/meta.json
 
-MEMORY_DIR = Path.home() / ".termind" / "memory"
+MEMORY_DIR = Path.home() / ".termmind" / "memory"
 
 # Supported languages and their comment/definition patterns
 LANG_PATTERNS: Dict[str, Dict[str, Any]] = {

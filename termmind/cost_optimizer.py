@@ -44,7 +44,7 @@ PRICING = {
 class CostOptimizer:
     """Track and optimize API costs across providers."""
 
-    def __init__(self, config_dir: str = "~/.termind"):
+    def __init__(self, config_dir: str = "~/.termmind"):
         self.config_dir = Path(config_dir).expanduser()
         self.history_file = self.config_dir / "cost_history.json"
         self.session_costs: List[Dict] = []

@@ -36,7 +36,7 @@ please report it responsibly.
 
 ## Security Best Practices for Users
 
-- **API Keys**: Store your API keys in `~/.termind/config.json` with restrictive
+- **API Keys**: Store your API keys in `~/.termmind/config.json` with restrictive
   file permissions (`chmod 600`). Never commit API keys to version control.
 - **File Operations**: Review file changes before applying edits. Use `/undo`
   to revert unwanted changes.
@@ -44,7 +44,7 @@ please report it responsibly.
   execute arbitrary shell commands.
 - **Providers**: Use local models (Ollama) for sensitive code to avoid sending
   code to external APIs.
-- **Configuration**: Review `~/.termind/config.json` and ensure sensitive values
+- **Configuration**: Review `~/.termmind/config.json` and ensure sensitive values
   are not exposed.
 
 ## Known Security Considerations
@@ -52,5 +52,5 @@ please report it responsibly.
 - TermMind sends code to configured AI providers for analysis. Use local models
   for proprietary or sensitive code.
 - The `/run` command can execute arbitrary shell commands — use with caution.
-- Session data is stored in plain text in `~/.termind/sessions/`.
-- Snippet data is stored in plain text in `~/.termind/snippets/`.
+- Session data is stored in plain text in `~/.termmind/sessions/`.
+- Snippet data is stored in plain text in `~/.termmind/snippets/`.

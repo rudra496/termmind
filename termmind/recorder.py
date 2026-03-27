@@ -2,7 +2,7 @@
 
 Commands:
     /record start           — Start recording session
-    /record stop            — Stop recording, save to ~/.termind/recordings/
+    /record stop            — Stop recording, save to ~/.termmind/recordings/
     /record list            — List all recordings
     /record replay <name>   — Replay a recording step by step
     /record replay --speed 2x <name> — Replay at 2x speed
@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-RECORDINGS_DIR = Path.home() / ".termind" / "recordings"
+RECORDINGS_DIR = Path.home() / ".termmind" / "recordings"
 
 
 class SessionRecorder:
@@ -522,7 +522,7 @@ def export_recording_html(name: str, output_path: Optional[str] = None) -> Optio
 </html>"""
 
     if output_path is None:
-        output_path = os.path.join(os.getcwd(), f"termind_recording_{recording_name}.html")
+        output_path = os.path.join(os.getcwd(), f"termmind_recording_{recording_name}.html")
     with open(output_path, "w") as f:
         f.write(html_content)
     return output_path
@@ -579,7 +579,7 @@ def cmd_record(rest: str, messages, client, console, cwd, ctx_files):
         name = recorder.name
         if recorder.stop():
             console.print(f"[success]⏹ Recording saved: {name}[/success]")
-            console.print(f"[dim]Location: ~/.termind/recordings/{name}.json[/dim]")
+            console.print(f"[dim]Location: ~/.termmind/recordings/{name}.json[/dim]")
         else:
             console.print("[error]Failed to save recording.[/error]")
 

@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from termind.file_ops import (
+from termmind.file_ops import (
     read_file,
     write_file,
     edit_file,
@@ -290,8 +290,8 @@ class TestUndoStack:
 
 
 class TestIgnorePatterns:
-    def test_termindignore(self, tmp_path):
-        (tmp_path / ".termindignore").write_text("*.log\nbuild/\n")
+    def test_termmindignore(self, tmp_path):
+        (tmp_path / ".termmindignore").write_text("*.log\nbuild/\n")
         (tmp_path / "app.log").write_text("log")
         build = tmp_path / "build"
         build.mkdir()

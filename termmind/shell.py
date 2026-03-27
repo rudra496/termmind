@@ -69,7 +69,7 @@ def get_shell_config_path(shell: Optional[str] = None) -> Optional[str]:
         ],
         "fish": [
             os.path.join(home, ".config", "fish", "config.fish"),
-            os.path.join(home, ".config", "fish", "completions", "termind.fish"),
+            os.path.join(home, ".config", "fish", "completions", "termmind.fish"),
         ],
     }
 
@@ -238,13 +238,13 @@ TERMIND_GIT_SUBCOMMANDS = [
 
 
 def generate_bash_completion() -> str:
-    """Generate a Bash completion script for termind."""
+    """Generate a Bash completion script for termmind."""
     subcommands = " ".join(TERMIND_COMMANDS)
     chat_cmds = " ".join(TERMIND_CHAT_COMMANDS)
     git_subs = " ".join(TERMIND_GIT_SUBCOMMANDS)
 
     return f'''# TermMind Bash completion
-_termind_completions() {{
+_termmind_completions() {{
     local cur prev subcmd
     COMPREPLY=()
     cur="${{COMP_WORDS[COMP_CWORD]}}"
@@ -310,7 +310,7 @@ _termind_completions() {{
     fi
 }}
 
-_termind_chat_completions() {{
+_termmind_chat_completions() {{
     local cur prev
     COMPREPLY=()
     cur="${{COMP_WORDS[COMP_CWORD]}}"
@@ -348,18 +348,18 @@ _termind_chat_completions() {{
     esac
 }}
 
-complete -F _termind_completions termind
+complete -F _termmind_completions termmind
 '''
 
 
 def generate_zsh_completion() -> str:
-    """Generate a Zsh completion script for termind."""
+    """Generate a Zsh completion script for termmind."""
     commands_list = " \\\n    ".join(f'"{c}"' for c in TERMIND_COMMANDS)
     chat_list = " \\\n    ".join(f'"{c}"' for c in TERMIND_CHAT_COMMANDS)
 
-    return f'''#compdef termind
+    return f'''#compdef termmind
 
-_termind_commands() {{
+_termmind_commands() {{
     local -a commands
     commands=(
 {commands_list}
@@ -367,7 +367,7 @@ _termind_commands() {{
     _describe 'command' commands
 }}
 
-_termind() {{
+_termmind() {{
     local curcontext="$curcontext" state line
     typeset -A opt_args
 
@@ -375,7 +375,7 @@ _termind() {{
         '--provider[AI provider]:provider:(openai anthropic gemini groq together openrouter ollama)' \\
         '--model[Model name]:model:' \\
         '--help[Show help]' \\
-        '1: :_termind_commands' \\
+        '1: :_termmind_commands' \\
         '*::arg:->args'
 
     case $line[1] in
@@ -388,34 +388,34 @@ _termind() {{
     esac
 }}
 
-_termind "$@"
+_termmind "$@"
 '''
 
 
 def generate_fish_completion() -> str:
-    """Generate a Fish shell completion script for termind."""
+    """Generate a Fish shell completion script for termmind."""
     commands_lines = "\n".join(
-        f"complete -c termind -f -n '__fish_is_first_arg' -a {c}"
+        f"complete -c termmind -f -n '__fish_is_first_arg' -a {c}"
         for c in TERMIND_COMMANDS
     )
     return f'''# TermMind Fish shell completion
 
 # Disable file completions for the main command
-complete -c termind -f
+complete -c termmind -f
 
 # Top-level commands
 {commands_lines}
 
 # Option completions
-complete -c termind -l provider -s p -d 'AI provider' -xa "openai anthropic gemini groq together openrouter ollama"
-complete -c termind -l model -s m -d 'Model name'
-complete -c termind -l framework -s f -d 'Test framework' -xa "pytest unittest jest"
+complete -c termmind -l provider -s p -d 'AI provider' -xa "openai anthropic gemini groq together openrouter ollama"
+complete -c termmind -l model -s m -d 'Model name'
+complete -c termmind -l framework -s f -d 'Test framework' -xa "pytest unittest jest"
 
 # File argument for edit, review, explain, etc.
-complete -c termind -f -n '__fish_seen_subcommand_from edit review explain test refactor docstring debug' -a '(frog "*")'
+complete -c termmind -f -n '__fish_seen_subcommand_from edit review explain test refactor docstring debug' -a '(frog "*")'
 
 # Ask takes any argument (no file restriction)
-complete -c termind -f -n '__fish_seen_subcommand_from ask'
+complete -c termmind -f -n '__fish_seen_subcommand_from ask'
 '''
 
 
@@ -430,12 +430,12 @@ def install_completions(shell: Optional[str] = None) -> Tuple[bool, str]:
     if not config_path:
         return False, f"Could not determine config path for shell: {shell}"
 
-    completion_dir = Path.home() / ".termind" / "completions"
+    completion_dir = Path.home() / ".termmind" / "completions"
     completion_dir.mkdir(parents=True, exist_ok=True)
 
     if shell == "bash":
         script = generate_bash_completion()
-        comp_file = completion_dir / "termind.bash"
+        comp_file = completion_dir / "termmind.bash"
         comp_file.write_text(script)
 
         # Add source line to bashrc
@@ -443,7 +443,7 @@ def install_completions(shell: Optional[str] = None) -> Tuple[bool, str]:
         if os.path.exists(config_path):
             with open(config_path) as f:
                 content = f.read()
-            if "termind" not in content.lower():
+            if "termmind" not in content.lower():
                 with open(config_path, "a") as f:
                     f.write(source_line)
                 return True, f"Completions installed. Restart shell or run: source {config_path}"
@@ -454,7 +454,7 @@ def install_completions(shell: Optional[str] = None) -> Tuple[bool, str]:
 
     elif shell == "zsh":
         script = generate_zsh_completion()
-        comp_file = completion_dir / "_termind"
+        comp_file = completion_dir / "_termmind"
         comp_file.write_text(script)
 
         # Add to fpath
@@ -462,7 +462,7 @@ def install_completions(shell: Optional[str] = None) -> Tuple[bool, str]:
         if os.path.exists(config_path):
             with open(config_path) as f:
                 content = f.read()
-            if "termind" not in content.lower():
+            if "termmind" not in content.lower():
                 with open(config_path, "a") as f:
                     f.write(source_line)
                 return True, f"Completions installed. Restart shell or run: source {config_path}"
@@ -477,7 +477,7 @@ def install_completions(shell: Optional[str] = None) -> Tuple[bool, str]:
         if comp_dir.name != "completions":
             comp_dir = Path.home() / ".config" / "fish" / "completions"
         comp_dir.mkdir(parents=True, exist_ok=True)
-        comp_file = comp_dir / "termind.fish"
+        comp_file = comp_dir / "termmind.fish"
         comp_file.write_text(script)
         return True, f"Completions installed to {comp_file}. Fish picks them up automatically."
 
@@ -500,7 +500,7 @@ def generate_all_completions(output_dir: str) -> Dict[str, str]:
         ("fish", generate_fish_completion),
     ]:
         ext = {3: "bash"}.get(shell_name, shell_name)
-        filename = f"termind.{ext}" if shell_name != "zsh" else "_termind"
+        filename = f"termmind.{ext}" if shell_name != "zsh" else "_termmind"
         filepath = out / filename
         filepath.write_text(gen_fn())
         results[shell_name] = str(filepath)

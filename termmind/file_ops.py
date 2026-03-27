@@ -368,9 +368,9 @@ def _walk_tree(
 
 
 def _load_ignores(directory: str) -> set:
-    """Load ignore patterns from .termindignore and .gitignore."""
+    """Load ignore patterns from .termmindignore and .gitignore."""
     patterns: set = set()
-    for name in [".termindignore", ".gitignore"]:
+    for name in [".termmindignore", ".gitignore"]:
         p = Path(directory) / name
         if p.exists():
             for line in p.read_text(errors="replace").splitlines():

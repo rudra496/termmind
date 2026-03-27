@@ -2,7 +2,7 @@
 
 import pytest
 
-from termind.utils import (
+from termmind.utils import (
     estimate_tokens,
     calculate_cost,
     detect_language,

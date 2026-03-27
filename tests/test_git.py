@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from termind.git import (
+from termmind.git import (
     git_status,
     git_diff,
     git_commit,
@@ -108,7 +108,7 @@ class TestGitWithRemote:
 
 class TestGitEdgeCases:
     def test_git_not_found(self):
-        with patch("termind.git._git") as mock_git:
+        with patch("termmind.git._git") as mock_git:
             mock_git.return_value = ("git not found", 1)
             assert git_is_repo(".") is False
 

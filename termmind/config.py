@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-CONFIG_DIR = Path.home() / ".termind"
+CONFIG_DIR = Path.home() / ".termmind"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 SESSIONS_DIR = CONFIG_DIR / "sessions"
 
@@ -86,7 +86,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "confirm_runs": True,
     "stream": True,
     "history_size": 100,
-    "sessions_dir": "~/.termind/sessions",
+    "sessions_dir": "~/.termmind/sessions",
     "custom_instructions": "",
     "providers": {},
 }

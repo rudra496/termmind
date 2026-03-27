@@ -32,7 +32,7 @@ Think Claude Code or Aider, but **free, open-source, and lightweight**.
 - 💾 **Session management** — Save and load conversations
 - 📊 **Cost tracking** — Real-time token count and cost estimation
 - 🔄 **Provider switching** — Change models mid-conversation with `/provider`
-- 🌳 **File tree** — Visual project structure with `.termindignore` support
+- 🌳 **File tree** — Visual project structure with `.termmindignore` support
 - 🔍 **Code search** — Find anything in your project files
 - 🐙 **Git integration** — Status, diff, log, and AI-generated commit messages
 - ⚡ **Streaming** — See responses as they're generated, not after
@@ -43,13 +43,13 @@ Think Claude Code or Aider, but **free, open-source, and lightweight**.
 ## 🚀 Installation
 
 ```bash
-pip install termind
+pip install termmind
 ```
 
 Or from source:
 
 ```bash
-git clone https://github.com/nicepkg/termmind.git
+git clone https://github.com/rudra496/termmind.git
 cd termmind
 pip install -e .
 ```
@@ -59,52 +59,52 @@ pip install -e .
 ### 1. Set up your API
 
 ```bash
-termind init
+termmind init
 ```
 
-This walks you through selecting a provider and entering your API key. You can also manually edit `~/.termind/config.json`.
+This walks you through selecting a provider and entering your API key. You can also manually edit `~/.termmind/config.json`.
 
 ### 2. Start chatting
 
 ```bash
-termind chat
+termmind chat
 ```
 
 ### 3. Ask questions
 
 ```bash
-termind ask "Explain async/await in Python"
+termmind ask "Explain async/await in Python"
 ```
 
 ### 4. Edit files
 
 ```bash
-termind edit main.py "Add input validation to the parse_args function"
+termmind edit main.py "Add input validation to the parse_args function"
 ```
 
 ### 5. Review code
 
 ```bash
-termind review ./src
+termmind review ./src
 ```
 
 ## 📋 Commands
 
 | Command | Description |
 |---------|-------------|
-| `termind init` | Configure API provider, key, and model |
-| `termind chat` | Start interactive chat session |
-| `termind ask "q"` | One-shot question (no session) |
-| `termind edit file` | Edit a file with AI |
-| `termind review path` | Review code in directory |
-| `termind explain file` | Explain a file |
-| `termind test file` | Generate tests for a file |
-| `termind history` | Show saved sessions |
-| `termind config` | Show current configuration |
+| `termmind init` | Configure API provider, key, and model |
+| `termmind chat` | Start interactive chat session |
+| `termmind ask "q"` | One-shot question (no session) |
+| `termmind edit file` | Edit a file with AI |
+| `termmind review path` | Review code in directory |
+| `termmind explain file` | Explain a file |
+| `termmind test file` | Generate tests for a file |
+| `termmind history` | Show saved sessions |
+| `termmind config` | Show current configuration |
 
 ### Chat Commands
 
-Inside `termind chat`, use slash commands:
+Inside `termmind chat`, use slash commands:
 
 | Command | Description |
 |---------|-------------|
@@ -142,7 +142,7 @@ Inside `termind chat`, use slash commands:
 #### Google Gemini
 1. Go to [aistudio.google.com](https://aistudio.google.com/apikey)
 2. Create a free API key
-3. Select `gemini` during `termind init`
+3. Select `gemini` during `termmind init`
 
 #### Groq
 1. Go to [console.groq.com](https://console.groq.com)
@@ -167,7 +167,7 @@ Inside `termind chat`, use slash commands:
 
 ## ⚙️ Configuration
 
-Config is stored at `~/.termind/config.json`:
+Config is stored at `~/.termmind/config.json`:
 
 ```json
 {
@@ -180,7 +180,7 @@ Config is stored at `~/.termind/config.json`:
 }
 ```
 
-### .termindignore
+### .termmindignore
 
 Like `.gitignore` but for AI context. Create in your project root:
 
@@ -226,15 +226,15 @@ docker compose run --rm termmind ask "Explain async/await in Python"
 
 ```bash
 # Auto-install for your current shell
-termind completions install
+termmind completions install
 
-# Or manually: generated scripts live in ~/.termind/completions/
+# Or manually: generated scripts live in ~/.termmind/completions/
 # Bash:
-  echo 'source ~/.termind/completions/termind.bash' >> ~/.bashrc
+  echo 'source ~/.termmind/completions/termmind.bash' >> ~/.bashrc
 # Zsh:
-  echo 'fpath=(~/.termind/completions $fpath)' >> ~/.zshrc
+  echo 'fpath=(~/.termmind/completions $fpath)' >> ~/.zshrc
 # Fish:
-  cp ~/.termind/completions/termind.fish ~/.config/fish/completions/
+  cp ~/.termmind/completions/termmind.fish ~/.config/fish/completions/
 ```
 
 ## 🏗️ Architecture
@@ -298,7 +298,7 @@ These features set TermMind apart from every other AI coding assistant:
 - **Generate completion scripts** for all three shells
 - **Terminal capability detection** — true color, Unicode, emoji, copy/paste
 - **Auto-resize handling** — responds to terminal resize events
-- **One-command install** — `termind completions install`
+- **One-command install** — `termmind completions install`
 
 ### 📦 Snippet Manager
 - **Save snippets** from conversations — extracts code blocks automatically
@@ -308,7 +308,7 @@ These features set TermMind apart from every other AI coding assistant:
 - **Import/Export** — share snippet collections as JSON files
 - **Usage tracking** — tracks how often each snippet is used
 - **Language detection** — auto-detects programming language from content
-- Stored in `~/.termind/snippets/` — portable and shareable
+- Stored in `~/.termmind/snippets/` — portable and shareable
 
 ### 🏗️ Project Templates
 - **8 built-in templates** — scaffold complete projects instantly:
@@ -321,7 +321,7 @@ These features set TermMind apart from every other AI coding assistant:
   - `express-api` — Express.js REST API
   - `django-app` — Django with Django REST Framework
 - **Template variables** — `{{project_name}}`, `{{module_name}}`, `{{author}}`, etc.
-- **Custom templates** — add your own to `~/.termind/templates/`
+- **Custom templates** — add your own to `~/.termmind/templates/`
 - **Post-generation instructions** — clear next steps for each template
 
 ### 🔧 Refactoring Engine
@@ -350,14 +350,14 @@ These features set TermMind apart from every other AI coding assistant:
 
 ```bash
 # Clone
-git clone https://github.com/nicepkg/termmind.git
+git clone https://github.com/rudra496/termmind.git
 cd termmind
 
 # Install in dev mode
 pip install -e .
 
 # Run directly
-python -m termind.cli chat
+python -m termmind.cli chat
 
 # Test
 python -m pytest
@@ -370,7 +370,7 @@ docker compose up --build
 
 ```
 termmind/
-├── termind/
+├── termmind/
 │   ├── __init__.py       # Version info
 │   ├── cli.py            # Main CLI entry point
 │   ├── api.py            # API client (streaming, multi-provider)

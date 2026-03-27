@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-PLUGIN_DIR = Path.home() / ".termind" / "plugins"
+PLUGIN_DIR = Path.home() / ".termmind" / "plugins"
 
 
 class BasePlugin(ABC):
@@ -126,7 +126,7 @@ BUILTIN_PLUGINS: List[type] = [TodoTrackerPlugin, CodeStatsPlugin, AutoCommitPlu
 
 
 def discover_plugins() -> List[BasePlugin]:
-    """Discover and instantiate plugins from ~/.termind/plugins/ and built-ins."""
+    """Discover and instantiate plugins from ~/.termmind/plugins/ and built-ins."""
     plugins: List[BasePlugin] = []
 
     # Built-ins

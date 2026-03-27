@@ -6,13 +6,13 @@ from unittest.mock import MagicMock, patch, PropertyMock
 import httpx
 import pytest
 
-from termind.api import APIClient, APIError
+from termmind.api import APIClient, APIError
 
 
 @pytest.fixture
 def mock_config():
-    with patch("termind.api.load_config") as mc, \
-         patch("termind.api.get_provider_info") as mp:
+    with patch("termmind.api.load_config") as mc, \
+         patch("termmind.api.get_provider_info") as mp:
         mc.return_value = {
             "provider": "openai",
             "api_key": "test-key",

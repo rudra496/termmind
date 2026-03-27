@@ -30,7 +30,7 @@ from .git import git_is_repo
 from .themes import get_theme
 from .utils import estimate_tokens, render_markdown
 
-HISTORY_FILE = Path.home() / ".termind" / "history"
+HISTORY_FILE = Path.home() / ".termmind" / "history"
 BANNER = r"""
 [bold cyan]  ╔═══════════════════════════════════╗
   ║      [bold white]T e r m M i n d[/bold white]                ║
@@ -154,13 +154,13 @@ def _interactive_init() -> dict:
             "Be concise and practical. When showing code, use markdown code blocks with language hints.",
     }
     save_config(cfg)
-    console.print(f"\n[success]✅ Configuration saved to ~/.termind/config.json[/success]")
+    console.print(f"\n[success]✅ Configuration saved to ~/.termmind/config.json[/success]")
     console.print(f"[dim]Provider: {provider} | Model: {model}[/dim]\n")
     return cfg
 
 
 @click.group(invoke_without_command=True)
-@click.version_option(__version__, prog_name="termind")
+@click.version_option(__version__, prog_name="termmind")
 @click.pass_context
 def main(ctx: click.Context):
     """TermMind — AI terminal assistant with 7 providers, streaming, plugins, and more."""
@@ -182,13 +182,13 @@ def ask(question: Optional[str], provider: Optional[str], model: Optional[str]):
     """Ask a question (one-shot, no session)."""
     if not question:
         console = _get_console()
-        console.print("[error]Usage: termind ask \"your question\"[/error]")
+        console.print("[error]Usage: termmind ask \"your question\"[/error]")
         return
 
     cfg = load_config()
     if not cfg.get("api_key") and PROVIDER_PRESETS.get(cfg.get("provider"), {}).get("requires_key", True):
         console = _get_console()
-        console.print("[warning]No API key configured. Run [command]termind init[/command] first.[/warning]")
+        console.print("[warning]No API key configured. Run [command]termmind init[/command] first.[/warning]")
         return
 
     console = _get_console()
@@ -658,7 +658,7 @@ def completions(action: str):
         else:
             click.echo(f"⚠ {msg}")
     elif action == "generate":
-        output_dir = str(Path.home() / ".termind" / "completions")
+        output_dir = str(Path.home() / ".termmind" / "completions")
         results = generate_all_completions(output_dir)
         for shell, path in results.items():
             click.echo(f"  {shell}: {path}")
@@ -697,7 +697,7 @@ def index(path: str, force: bool, query: str):
     table.add_row("Classes", str(summary["total_classes"]))
     table.add_row("Languages", ", ".join(summary["languages"]))
     table.add_row("Build time", f"{elapsed:.2f}s")
-    table.add_row("Cached", str(Path.home() / ".termind" / "memory" / idx.project_hash))
+    table.add_row("Cached", str(Path.home() / ".termmind" / "memory" / idx.project_hash))
     console.print(table)
 
 
@@ -760,7 +760,7 @@ def doctors():
     if cfg.get("api_key") or provider == "ollama":
         table.add_row("API Key", "[success]✅[/success]", "Configured")
     else:
-        table.add_row("API Key", "[warning]⚠[/warning]", "Not configured — run termind init")
+        table.add_row("API Key", "[warning]⚠[/warning]", "Not configured — run termmind init")
 
     # Git check
     try:

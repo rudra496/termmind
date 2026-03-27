@@ -7,7 +7,7 @@ from io import StringIO
 import pytest
 from rich.console import Console
 
-from termind.commands import handle_command, cmd_help, cmd_version, cmd_quit, cmd_clear
+from termmind.commands import handle_command, cmd_help, cmd_version, cmd_quit, cmd_clear
 
 
 @pytest.fixture
@@ -132,7 +132,7 @@ class TestProviderCommands:
         handle_command("model", "model", messages, mock_client, mock_console, str(tmp_cwd), ctx_files)
 
     def test_cmd_model_switch(self, mock_console, mock_client, messages, tmp_cwd, ctx_files):
-        with patch("termind.commands.save_config"):
+        with patch("termmind.commands.save_config"):
             handle_command("model", "model gpt-4o", messages, mock_client, mock_console, str(tmp_cwd), ctx_files)
 
     def test_cmd_models(self, mock_console, mock_client, messages, tmp_cwd, ctx_files):
@@ -142,11 +142,11 @@ class TestProviderCommands:
         handle_command("provider", "provider", messages, mock_client, mock_console, str(tmp_cwd), ctx_files)
 
     def test_cmd_providers(self, mock_console, mock_client, messages, tmp_cwd, ctx_files):
-        with patch("termind.commands.load_config", return_value={"provider": "ollama", "api_key": ""}):
+        with patch("termmind.commands.load_config", return_value={"provider": "ollama", "api_key": ""}):
             handle_command("providers", "providers", messages, mock_client, mock_console, str(tmp_cwd), ctx_files)
 
     def test_cmd_provider_switch(self, mock_console, mock_client, messages, tmp_cwd, ctx_files):
-        with patch("termind.commands.save_config"):
+        with patch("termmind.commands.save_config"):
             handle_command("provider", "provider ollama", messages, mock_client, mock_console, str(tmp_cwd), ctx_files)
 
     def test_cmd_provider_invalid(self, mock_console, mock_client, messages, tmp_cwd, ctx_files):
@@ -155,7 +155,7 @@ class TestProviderCommands:
 
 class TestThemeCommands:
     def test_cmd_theme_show(self, mock_console, mock_client, messages, tmp_cwd, ctx_files):
-        with patch("termind.commands.load_config", return_value={"theme": "dark"}):
+        with patch("termmind.commands.load_config", return_value={"theme": "dark"}):
             handle_command("theme", "theme", messages, mock_client, mock_console, str(tmp_cwd), ctx_files)
 
     def test_cmd_themes(self, mock_console, mock_client, messages, tmp_cwd, ctx_files):

@@ -447,7 +447,7 @@ def _snippet_delete(name: str, _arg2, messages, client, console, cwd, ctx_files)
 
 def _snippet_export(arg1: str, _arg2, messages, client, console, cwd, ctx_files):
     """Export all snippets to JSON."""
-    filepath = arg1.strip() or os.path.join(cwd, "termind_snippets_export.json")
+    filepath = arg1.strip() or os.path.join(cwd, "termmind_snippets_export.json")
     count = export_snippets(filepath)
     if count == 0:
         console.print("[system]No snippets to export.[/system]")

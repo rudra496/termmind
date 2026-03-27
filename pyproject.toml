@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "termind"
+name = "termmind"
 version = "0.1.0"
 description = "A modern, open-source AI terminal assistant"
 readme = "README.md"
@@ -27,8 +27,8 @@ dependencies = [
 ]
 
 [project.scripts]
-termind = "termind.cli:main"
+termmind = "termmind.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/nicepkg/termmind"
-Repository = "https://github.com/nicepkg/termmind"
+Homepage = "https://github.com/rudra496/termmind"
+Repository = "https://github.com/rudra496/termmind"
