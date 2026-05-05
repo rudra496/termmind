@@ -71,6 +71,19 @@ def _get_key_bindings():
     def _(event):
         event.current_buffer.insert_text("\n")
 
+    @kb.add("up")
+    def _history_back(event):
+        buff = event.current_buffer
+        if buff.document.cursor_position_row == 0:
+            buff.history_backward()
+
+    @kb.add("down")
+    def _history_forward(event):
+        buff = event.current_buffer
+        doc = buff.document
+        if doc.cursor_position_row == doc.line_count - 1:
+            buff.history_forward()
+
     return kb
 
 
