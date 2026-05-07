@@ -14,7 +14,7 @@ please report it responsibly.
 ### How to Report
 
 1. **Do NOT** open a public issue for security vulnerabilities.
-2. Email your report to: [INSERT SECURITY EMAIL]
+2. Email your report to: security@rudrasarker.com
 3. Include as much detail as possible:
    - Description of the vulnerability
    - Steps to reproduce
