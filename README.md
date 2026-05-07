@@ -1,5 +1,5 @@
 <!-- TermMind: AI terminal assistant supporting 7+ LLM providers. Chat with GPT, Claude, Gemini in your terminal with code analysis, file editing, and 40+ commands. -->
-<!-- Keywords: AI terminal assistant, CLI coding tool, GPT terminal, Claude terminal, coding assistant, AI code editor, terminal AI chat, LLM CLI tool, aider alternative, claude code alternative -->
+<!-- Keywords: AI terminal assistant, CLI coding tool, GPT terminal, Claude terminal, coding assistant, AI code editor, terminal AI chat, LLM CLI tool -->
 
 <p align="center">
   <a href="https://github.com/rudra496/termmind/actions/workflows/ci.yml">
@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Think_Claude_Code_or_Aider—but_free_and_open--source-8b5cf6?style=for-the-badge" alt="Tagline">
+  <img src="https://img.shields.io/badge/Free_%26_Open_Source-MIT-success?style=for-the-badge" alt="Tagline">
 </p>
 
 <p align="center">
@@ -213,11 +213,11 @@ termmind doctors       # Health check
 termmind completions   # Shell completions
 ```
 
-## ⚖️ Comparison
+## ⚖️ Feature Comparison
 
 | Feature | TermMind | Claude Code | Aider | Open Interpreter |
 |---------|----------|-------------|-------|-----------------|
-| Open Source | ✅ MIT | ❌ Proprietary | ✅ Apache | ✅ MIT |
+| License | ✅ MIT | ❌ Proprietary | ✅ Apache | ✅ MIT |
 | Free to Use | ✅ | ❌ Paid | ✅ | ✅ |
 | Providers | 7 | 1 (Claude) | 5+ | 3+ |
 | Local Models | ✅ Ollama | ❌ | ✅ | ✅ |
@@ -232,7 +232,6 @@ termmind completions   # Shell completions
 | Session Recording | ✅ HTML export | ✅ | ❌ | ❌ |
 | Cost Tracking | ✅ Budget alerts | ❌ | ❌ | ❌ |
 | Project Templates | ✅ 8 templates | ❌ | ❌ | ❌ |
-| Dependencies | 4 lightweight | Large | Moderate | Heavy |
 
 ## 🏗 Architecture
 
