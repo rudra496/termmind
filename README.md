@@ -37,6 +37,10 @@
 
 ## 🖥️ Demo
 
+<p align="center">
+  <img src="docs/assets/workflow.svg" alt="How TermMind Works" width="700">
+</p>
+
 ```
 $ termmind chat
 
@@ -215,31 +219,9 @@ termmind completions   # Shell completions
 
 ## 🏗 Architecture
 
-```
-termmind/
-├── cli.py           # Click CLI entry point, interactive chat loop
-├── api.py           # HTTP client with streaming, retry, cost tracking
-├── providers.py     # 7 LLM providers (OpenAI-compatible base + Anthropic)
-├── commands.py      # 30+ slash command handlers
-├── context.py       # Smart file relevance scoring and context builder
-├── file_ops.py      # File read/write/edit/search/diff/undo
-├── git.py           # Git operations + AI commit messages
-├── memory.py        # Code index for 9 languages (AST-based)
-├── diff_engine.py   # Diff parsing, inline/side-by-side rendering
-├── refactor.py      # 8 AI-powered refactoring operations
-├── snippets.py      # Snippet save/load/search/import/export
-├── templates.py     # 8 project scaffolding templates
-├── recorder.py      # Session recording + HTML export
-├── cost_optimizer.py # Cost tracking, budget alerts, provider comparison
-├── doc_preview.py   # Inline docstring preview (Python, JS, Go, Rust, Java)
-├── voice.py         # TTS via pyttsx3 (optional)
-├── eli5.py          # Explain Like I'm 5 mode
-├── plugins.py       # Plugin system (ABC + dynamic discovery)
-├── sessions.py      # Session save/load/export
-├── themes.py        # 5 color themes
-├── shell.py         # Shell detection, completions, capabilities
-└── utils.py         # Token counting, cost calculation, language detection
-```
+<p align="center">
+  <img src="docs/assets/architecture.svg" alt="TermMind Architecture" width="700">
+</p>
 
 ## 🔧 Configuration
 

@@ -3,6 +3,7 @@
 import os
 import shutil
 import signal
+import sys
 
 try:
     import fcntl  # noqa: F401
@@ -20,9 +21,14 @@ from typing import Any, Optional
 def detect_shell() -> str:
     """Detect the current shell type.
 
-    Returns one of: 'bash', 'zsh', 'fish', 'sh', 'unknown'.
+    Returns one of: 'bash', 'zsh', 'fish', 'sh', 'powershell', 'cmd', 'unknown'.
     """
-    # Check SHELL environment variable
+    if sys.platform == "win32":
+        ps_module_path = os.environ.get("PSMODULEPATH", "")
+        if ps_module_path:
+            return "powershell"
+        return "cmd"
+
     shell_path = os.environ.get("SHELL", "")
     if "zsh" in shell_path:
         return "zsh"
@@ -73,6 +79,10 @@ def get_shell_config_path(shell: Optional[str] = None) -> Optional[str]:
         "fish": [
             os.path.join(home, ".config", "fish", "config.fish"),
             os.path.join(home, ".config", "fish", "completions", "termmind.fish"),
+        ],
+        "powershell": [
+            os.path.join(home, "Documents", "PowerShell", "Microsoft.PowerShell_profile.ps1"),
+            os.path.join(home, "Documents", "WindowsPowerShell", "Microsoft.PowerShell_profile.ps1"),
         ],
     }
 

@@ -348,7 +348,7 @@ def edit(filepath: str, instruction: Optional[str], provider: Optional[str], mod
     """Edit a file with AI assistance."""
     cfg = load_config()
     console = _get_console()
-    full_path = os.path.abspath(filepath)
+    full_path = str(Path(filepath).resolve())
     content = read_file(full_path)
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
@@ -395,7 +395,7 @@ def review(path: str, provider: Optional[str], model: Optional[str]):
     console = _get_console()
     client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
 
-    target = os.path.abspath(path)
+    target = str(Path(path).resolve())
     p = Path(target)
     if p.is_file():
         content = read_file(target)
@@ -436,6 +436,7 @@ def explain(filepath: str, provider: Optional[str], model: Optional[str]):
     """Explain a file in plain English."""
     cfg = load_config()
     console = _get_console()
+    filepath = str(Path(filepath).resolve())
     content = read_file(filepath)
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
@@ -461,6 +462,7 @@ def test(filepath: str, provider: Optional[str], model: Optional[str], framework
     """Generate unit tests for a file."""
     cfg = load_config()
     console = _get_console()
+    filepath = str(Path(filepath).resolve())
     content = read_file(filepath)
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
@@ -494,6 +496,7 @@ def refactor(filepath: str, provider: Optional[str], model: Optional[str]):
     """Suggest/implement refactoring for a file."""
     cfg = load_config()
     console = _get_console()
+    filepath = str(Path(filepath).resolve())
     content = read_file(filepath)
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
@@ -528,6 +531,7 @@ def docstring(filepath: str, provider: Optional[str], model: Optional[str]):
     """Generate docstrings for a file."""
     cfg = load_config()
     console = _get_console()
+    filepath = str(Path(filepath).resolve())
     content = read_file(filepath)
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
@@ -547,7 +551,7 @@ File: {filepath}
             lines = lines[1:]
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
-        full_path = os.path.abspath(filepath)
+        full_path = str(Path(filepath).resolve())
         write_file(full_path, "\n".join(lines))
         console.print(f"\n[success]✅ Docstrings added: {filepath}[/success]")
 
@@ -560,6 +564,7 @@ def debug(filepath: str, provider: Optional[str], model: Optional[str]):
     """Help debug issues in a file."""
     cfg = load_config()
     console = _get_console()
+    filepath = str(Path(filepath).resolve())
     content = read_file(filepath)
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
@@ -587,6 +592,7 @@ def translate(filepath: str, lang: str, provider: Optional[str], model: Optional
     """Translate comments and docstrings to another language."""
     cfg = load_config()
     console = _get_console()
+    filepath = str(Path(filepath).resolve())
     content = read_file(filepath)
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
@@ -608,7 +614,7 @@ File: {filepath}
             lines = lines[1:]
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
-        full_path = os.path.abspath(filepath)
+        full_path = str(Path(filepath).resolve())
         write_file(full_path, "\n".join(lines))
         console.print(f"\n[success]✅ Translated: {filepath}[/success]")
 
