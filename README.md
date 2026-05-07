@@ -30,7 +30,7 @@
   <a href="#-features">Features</a> •
   <a href="#-providers">Providers</a> •
   <a href="#-commands">Commands</a> •
-  <a href="#%EF%B8%8F-comparison">Comparison</a>
+  <a href="#-architecture">Architecture</a>
 </p>
 
 ---
@@ -212,26 +212,6 @@ termmind symbols       # List symbols
 termmind doctors       # Health check
 termmind completions   # Shell completions
 ```
-
-## ⚖️ Feature Comparison
-
-| Feature | TermMind | Claude Code | Aider | Open Interpreter |
-|---------|----------|-------------|-------|-----------------|
-| License | ✅ MIT | ❌ Proprietary | ✅ Apache | ✅ MIT |
-| Free to Use | ✅ | ❌ Paid | ✅ | ✅ |
-| Providers | 7 | 1 (Claude) | 5+ | 3+ |
-| Local Models | ✅ Ollama | ❌ | ✅ | ✅ |
-| File Editing | ✅ Diff Preview | ✅ | ✅ | ✅ |
-| Code Review | ✅ | ✅ | ✅ | ✅ |
-| Refactoring | ✅ 8 ops | ✅ | ❌ | ❌ |
-| Test Generation | ✅ | ✅ | ❌ | ✅ |
-| Code Index | ✅ 9 langs | ✅ | ❌ | ❌ |
-| Plugins | ✅ | ❌ | ❌ | ❌ |
-| Voice Mode | ✅ | ❌ | ❌ | ❌ |
-| Snippet Manager | ✅ | ❌ | ❌ | ❌ |
-| Session Recording | ✅ HTML export | ✅ | ❌ | ❌ |
-| Cost Tracking | ✅ Budget alerts | ❌ | ❌ | ❌ |
-| Project Templates | ✅ 8 templates | ❌ | ❌ | ❌ |
 
 ## 🏗 Architecture
 
