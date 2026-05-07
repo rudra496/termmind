@@ -5,9 +5,14 @@ import re
 import shutil
 import sys
 import signal
-import struct
-import fcntl
-import termios
+
+try:
+    import struct
+    import fcntl
+    import termios
+    HAS_TERMIOS = True
+except ImportError:
+    HAS_TERMIOS = False
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 

@@ -464,7 +464,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 | **Open Source Contributors** | Understand unfamiliar codebases quickly |
 | **AI Enthusiasts** | Experiment with multiple LLM providers side by side |
 
-n## 🔗 Other Projects
+## 🔗 Other Projects
 
 Check out more open-source tools:
 
