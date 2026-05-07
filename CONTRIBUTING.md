@@ -17,7 +17,7 @@ Thank you for your interest in contributing to TermMind! This guide covers every
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.9+
 - pip
 
 ### Clone & Install

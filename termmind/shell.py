@@ -504,7 +504,7 @@ def generate_all_completions(output_dir: str) -> Dict[str, str]:
         ("zsh", generate_zsh_completion),
         ("fish", generate_fish_completion),
     ]:
-        ext = {3: "bash"}.get(shell_name, shell_name)
+        ext = "bash" if shell_name in ("bash", "sh") else shell_name
         filename = f"termmind.{ext}" if shell_name != "zsh" else "_termmind"
         filepath = out / filename
         filepath.write_text(gen_fn())

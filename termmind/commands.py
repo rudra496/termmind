@@ -209,7 +209,9 @@ def cmd_run(rest: str, messages, client, console, cwd, ctx_files):
     import subprocess
     console.print(f"[command]$ {rest}[/command]")
     try:
-        result = subprocess.run(rest, shell=True, capture_output=True, text=True, cwd=cwd, timeout=timeout)
+        import shlex
+        parsed = shlex.split(rest)
+        result = subprocess.run(parsed, capture_output=True, text=True, cwd=cwd, timeout=timeout)
         if result.stdout:
             console.print(result.stdout)
         if result.stderr:
@@ -542,9 +544,7 @@ def cmd_git(rest: str, messages, client, console, cwd, ctx_files):
         from .git import ai_commit_message
         console.print("[system]🤖 Generating commit message...[/system]")
         try:
-            loop = asyncio.new_event_loop()
-            commit_msg = loop.run_until_complete(ai_commit_message(client, diff_text))
-            loop.close()
+            commit_msg = ai_commit_message(client, diff_text)
         except Exception:
             commit_msg = "chore: update"
         console.print(f"[info]Suggested:[/info] {commit_msg}")

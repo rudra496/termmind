@@ -9,7 +9,26 @@ import httpx
 
 from .config import load_config, get_provider_info
 
-USER_AGENT = "TermMind/0.1.0"
+USER_AGENT = "TermMind/1.0.0"
+_TIMEOUT = httpx.Timeout(120, connect=10)
+_STREAM_TIMEOUT = httpx.Timeout(120, connect=10)
+_OLLAMA_TIMEOUT = httpx.Timeout(300, connect=10)
+
+_shared_client: Optional[httpx.Client] = None
+
+
+def _get_shared_client(timeout: httpx.Timeout = _TIMEOUT) -> httpx.Client:
+    global _shared_client
+    if _shared_client is None or _shared_client.is_closed:
+        _shared_client = httpx.Client(timeout=timeout)
+    return _shared_client
+
+
+def _close_shared_client() -> None:
+    global _shared_client
+    if _shared_client is not None:
+        _shared_client.close()
+        _shared_client = None
 
 
 class BaseProvider(ABC):
@@ -55,9 +74,78 @@ class BaseProvider(ABC):
         return h
 
 
-def _retry_request(
-    func, max_retries: int = 3, retry_on: Optional[List[int]] = None
-) -> Any:
+class OpenAICompatibleProvider(BaseProvider):
+    """Shared base for providers using the OpenAI chat completions API.
+
+    Subclasses only need to set: name, requires_key, _costs, _models, base_url, model.
+    The streaming and non-streaming logic is handled here.
+    """
+
+    _costs: Dict[str, tuple] = {}
+    _models: List[str] = []
+    _timeout: httpx.Timeout = _TIMEOUT
+
+    def __init__(self, **kw: Any):
+        super().__init__(**kw)
+        if self.base_url:
+            self.base_url = self.base_url.rstrip("/")
+
+    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
+        body = {
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": kw.get("max_tokens", 4096),
+            "temperature": kw.get("temperature", 0.7),
+            "stream": stream,
+        }
+        url = f"{self.base_url}/chat/completions"
+        headers = self._headers()
+
+        if not stream:
+            resp = _retry_request(lambda: _get_shared_client(self._timeout).post(url, json=body, headers=headers))
+            if resp.status_code != 200:
+                raise Exception(f"{self.name.title()} error {resp.status_code}: {resp.text}")
+            yield resp.json()["choices"][0]["message"]["content"]
+            return
+
+        with httpx.Client(timeout=self._timeout) as client:
+            with client.stream("POST", url, json=body, headers=headers) as resp:
+                if resp.status_code != 200:
+                    raise Exception(f"{self.name.title()} error {resp.status_code}: {resp.read().decode()}")
+                for line in resp.iter_lines():
+                    if not line or not line.startswith("data: "):
+                        continue
+                    data = line[6:]
+                    if data.strip() == "[DONE]":
+                        break
+                    try:
+                        delta = json.loads(data).get("choices", [{}])[0].get("delta", {})
+                        c = delta.get("content", "")
+                        if c:
+                            yield c
+                    except json.JSONDecodeError:
+                        continue
+
+    def list_models(self) -> List[str]:
+        return list(self._models)
+
+    def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
+        if not self._costs:
+            return 0.0
+        costs = self._costs.get(self.model, (0.0, 0.0))
+        return (input_tokens / 1000 * costs[0]) + (output_tokens / 1000 * costs[1])
+
+    def validate_connection(self, timeout: float = 10.0) -> bool:
+        if self.requires_key and not self.api_key:
+            return False
+        try:
+            resp = httpx.get(f"{self.base_url}/models", headers=self._headers(), timeout=timeout)
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+
+def _retry_request(func, max_retries: int = 3, retry_on: Optional[List[int]] = None) -> Any:
     """Execute func with exponential backoff on retryable status codes."""
     retry_on = retry_on or [429, 500, 502, 503]
     last_err = None
@@ -80,7 +168,7 @@ def _retry_request(
     return None
 
 
-class OpenAIProvider(BaseProvider):
+class OpenAIProvider(OpenAICompatibleProvider):
     """OpenAI API provider."""
 
     name = "openai"
@@ -101,59 +189,6 @@ class OpenAIProvider(BaseProvider):
         super().__init__(**kw)
         self.base_url = self.base_url or "https://api.openai.com/v1"
         self.model = self.model or "gpt-4o-mini"
-
-    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
-        body = {
-            "model": self.model,
-            "messages": messages,
-            "max_tokens": kw.get("max_tokens", 4096),
-            "temperature": kw.get("temperature", 0.7),
-            "stream": stream,
-        }
-        url = f"{self.base_url}/chat/completions"
-        headers = self._headers()
-
-        def do_req():
-            return httpx.Client(timeout=httpx.Timeout(120, connect=10)).post(url, json=body, headers=headers)
-
-        if not stream:
-            resp = _retry_request(do_req)
-            if resp.status_code != 200:
-                raise Exception(f"OpenAI error {resp.status_code}: {resp.text}")
-            yield resp.json()["choices"][0]["message"]["content"]
-            return
-
-        with httpx.Client(timeout=httpx.Timeout(120, connect=10)) as client:
-            with client.stream("POST", url, json=body, headers=headers) as resp:
-                if resp.status_code != 200:
-                    raise Exception(f"OpenAI error {resp.status_code}: {resp.read().decode()}")
-                for line in resp.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data.strip() == "[DONE]":
-                        break
-                    try:
-                        delta = json.loads(data).get("choices", [{}])[0].get("delta", {})
-                        c = delta.get("content", "")
-                        if c:
-                            yield c
-                    except json.JSONDecodeError:
-                        continue
-
-    def list_models(self) -> List[str]:
-        return list(self._models)
-
-    def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
-        costs = self._costs.get(self.model, (0.01, 0.03))
-        return (input_tokens / 1000 * costs[0]) + (output_tokens / 1000 * costs[1])
-
-    def validate_connection(self, timeout: float = 10.0) -> bool:
-        try:
-            resp = httpx.get(f"{self.base_url}/models", headers=self._headers(), timeout=timeout)
-            return resp.status_code == 200
-        except Exception:
-            return False
 
 
 class AnthropicProvider(BaseProvider):
@@ -211,7 +246,7 @@ class AnthropicProvider(BaseProvider):
 
         if not stream:
             def do_req():
-                return httpx.Client(timeout=httpx.Timeout(120, connect=10)).post(url, json=body, headers=headers)
+                return _get_shared_client().post(url, json=body, headers=headers)
             resp = _retry_request(do_req)
             if resp.status_code != 200:
                 raise Exception(f"Anthropic error {resp.status_code}: {resp.text}")
@@ -221,7 +256,7 @@ class AnthropicProvider(BaseProvider):
                     yield block["text"]
             return
 
-        with httpx.Client(timeout=httpx.Timeout(120, connect=10)) as client:
+        with httpx.Client(timeout=_TIMEOUT) as client:
             with client.stream("POST", url, json=body, headers=headers) as resp:
                 if resp.status_code != 200:
                     raise Exception(f"Anthropic error {resp.status_code}: {resp.read().decode()}")
@@ -256,12 +291,12 @@ class AnthropicProvider(BaseProvider):
                 headers=self._anthropic_headers(),
                 timeout=timeout,
             )
-            return resp.status_code in (200, 403)  # 403 = valid key but not admin
+            return resp.status_code in (200, 403)
         except Exception:
             return False
 
 
-class GeminiProvider(BaseProvider):
+class GeminiProvider(OpenAICompatibleProvider):
     """Google Gemini API via OpenAI-compatible endpoint."""
 
     name = "gemini"
@@ -278,50 +313,6 @@ class GeminiProvider(BaseProvider):
         self.base_url = self.base_url or "https://generativelanguage.googleapis.com/v1beta/openai"
         self.model = self.model or "gemini-2.0-flash"
 
-    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
-        body = {
-            "model": self.model,
-            "messages": messages,
-            "max_tokens": kw.get("max_tokens", 4096),
-            "temperature": kw.get("temperature", 0.7),
-            "stream": stream,
-        }
-        url = f"{self.base_url}/chat/completions"
-        headers = self._headers()
-
-        if not stream:
-            def do_req():
-                return httpx.Client(timeout=httpx.Timeout(120, connect=10)).post(url, json=body, headers=headers)
-            resp = _retry_request(do_req)
-            if resp.status_code != 200:
-                raise Exception(f"Gemini error {resp.status_code}: {resp.text}")
-            yield resp.json()["choices"][0]["message"]["content"]
-            return
-
-        with httpx.Client(timeout=httpx.Timeout(120, connect=10)) as client:
-            with client.stream("POST", url, json=body, headers=headers) as resp:
-                if resp.status_code != 200:
-                    raise Exception(f"Gemini error {resp.status_code}: {resp.read().decode()}")
-                for line in resp.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data.strip() == "[DONE]":
-                        break
-                    try:
-                        delta = json.loads(data).get("choices", [{}])[0].get("delta", {})
-                        c = delta.get("content", "")
-                        if c:
-                            yield c
-                    except json.JSONDecodeError:
-                        continue
-
-    def list_models(self) -> List[str]:
-        return list(self._models)
-
-    def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
-        return 0.0
-
     def validate_connection(self, timeout: float = 10.0) -> bool:
         if not self.api_key:
             return False
@@ -335,7 +326,7 @@ class GeminiProvider(BaseProvider):
             return False
 
 
-class GroqProvider(BaseProvider):
+class GroqProvider(OpenAICompatibleProvider):
     """Groq API provider (OpenAI-compatible)."""
 
     name = "groq"
@@ -355,61 +346,8 @@ class GroqProvider(BaseProvider):
         self.base_url = self.base_url or "https://api.groq.com/openai/v1"
         self.model = self.model or "llama-3.3-70b-versatile"
 
-    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
-        body = {
-            "model": self.model,
-            "messages": messages,
-            "max_tokens": kw.get("max_tokens", 4096),
-            "temperature": kw.get("temperature", 0.7),
-            "stream": stream,
-        }
-        url = f"{self.base_url}/chat/completions"
-        headers = self._headers()
 
-        if not stream:
-            def do_req():
-                return httpx.Client(timeout=httpx.Timeout(120, connect=10)).post(url, json=body, headers=headers)
-            resp = _retry_request(do_req)
-            if resp.status_code != 200:
-                raise Exception(f"Groq error {resp.status_code}: {resp.text}")
-            yield resp.json()["choices"][0]["message"]["content"]
-            return
-
-        with httpx.Client(timeout=httpx.Timeout(120, connect=10)) as client:
-            with client.stream("POST", url, json=body, headers=headers) as resp:
-                if resp.status_code != 200:
-                    raise Exception(f"Groq error {resp.status_code}: {resp.read().decode()}")
-                for line in resp.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data.strip() == "[DONE]":
-                        break
-                    try:
-                        delta = json.loads(data).get("choices", [{}])[0].get("delta", {})
-                        c = delta.get("content", "")
-                        if c:
-                            yield c
-                    except json.JSONDecodeError:
-                        continue
-
-    def list_models(self) -> List[str]:
-        return list(self._models)
-
-    def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
-        return 0.0
-
-    def validate_connection(self, timeout: float = 10.0) -> bool:
-        if not self.api_key:
-            return False
-        try:
-            resp = httpx.get(f"{self.base_url}/models", headers=self._headers(), timeout=timeout)
-            return resp.status_code == 200
-        except Exception:
-            return False
-
-
-class TogetherProvider(BaseProvider):
+class TogetherProvider(OpenAICompatibleProvider):
     """Together.ai API provider (OpenAI-compatible)."""
 
     name = "together"
@@ -426,62 +364,8 @@ class TogetherProvider(BaseProvider):
         self.base_url = self.base_url or "https://api.together.xyz/v1"
         self.model = self.model or "meta-llama/Llama-3-70b-chat-hf"
 
-    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
-        body = {
-            "model": self.model,
-            "messages": messages,
-            "max_tokens": kw.get("max_tokens", 4096),
-            "temperature": kw.get("temperature", 0.7),
-            "stream": stream,
-        }
-        url = f"{self.base_url}/chat/completions"
-        headers = self._headers()
 
-        if not stream:
-            def do_req():
-                return httpx.Client(timeout=httpx.Timeout(120, connect=10)).post(url, json=body, headers=headers)
-            resp = _retry_request(do_req)
-            if resp.status_code != 200:
-                raise Exception(f"Together error {resp.status_code}: {resp.text}")
-            yield resp.json()["choices"][0]["message"]["content"]
-            return
-
-        with httpx.Client(timeout=httpx.Timeout(120, connect=10)) as client:
-            with client.stream("POST", url, json=body, headers=headers) as resp:
-                if resp.status_code != 200:
-                    raise Exception(f"Together error {resp.status_code}: {resp.read().decode()}")
-                for line in resp.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data.strip() == "[DONE]":
-                        break
-                    try:
-                        delta = json.loads(data).get("choices", [{}])[0].get("delta", {})
-                        c = delta.get("content", "")
-                        if c:
-                            yield c
-                    except json.JSONDecodeError:
-                        continue
-
-    def list_models(self) -> List[str]:
-        return list(self._models)
-
-    def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
-        costs = self._costs.get(self.model, (0.00088, 0.00088))
-        return (input_tokens / 1000 * costs[0]) + (output_tokens / 1000 * costs[1])
-
-    def validate_connection(self, timeout: float = 10.0) -> bool:
-        if not self.api_key:
-            return False
-        try:
-            resp = httpx.get(f"{self.base_url}/models", headers=self._headers(), timeout=timeout)
-            return resp.status_code == 200
-        except Exception:
-            return False
-
-
-class OpenRouterProvider(BaseProvider):
+class OpenRouterProvider(OpenAICompatibleProvider):
     """OpenRouter API provider."""
 
     name = "openrouter"
@@ -492,111 +376,27 @@ class OpenRouterProvider(BaseProvider):
         self.base_url = self.base_url or "https://openrouter.ai/api/v1"
         self.model = self.model or "openai/gpt-4o-mini"
 
-    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
-        body = {
-            "model": self.model,
-            "messages": messages,
-            "max_tokens": kw.get("max_tokens", 4096),
-            "temperature": kw.get("temperature", 0.7),
-            "stream": stream,
-        }
-        url = f"{self.base_url}/chat/completions"
-        headers = self._headers({
-            "HTTP-Referer": "https://github.com/rudra496/termmind",
-            "X-Title": "TermMind",
-        })
-
-        if not stream:
-            def do_req():
-                return httpx.Client(timeout=httpx.Timeout(120, connect=10)).post(url, json=body, headers=headers)
-            resp = _retry_request(do_req)
-            if resp.status_code != 200:
-                raise Exception(f"OpenRouter error {resp.status_code}: {resp.text}")
-            yield resp.json()["choices"][0]["message"]["content"]
-            return
-
-        with httpx.Client(timeout=httpx.Timeout(120, connect=10)) as client:
-            with client.stream("POST", url, json=body, headers=headers) as resp:
-                if resp.status_code != 200:
-                    raise Exception(f"OpenRouter error {resp.status_code}: {resp.read().decode()}")
-                for line in resp.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data.strip() == "[DONE]":
-                        break
-                    try:
-                        delta = json.loads(data).get("choices", [{}])[0].get("delta", {})
-                        c = delta.get("content", "")
-                        if c:
-                            yield c
-                    except json.JSONDecodeError:
-                        continue
+    def _headers(self, extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+        h = super()._headers(extra)
+        h["HTTP-Referer"] = "https://github.com/rudra496/termmind"
+        h["X-Title"] = "TermMind"
+        return h
 
     def list_models(self) -> List[str]:
-        return ["*"]  # OpenRouter supports any model
-
-    def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
-        return 0.0  # Varies by model; check openrouter.ai
-
-    def validate_connection(self, timeout: float = 10.0) -> bool:
-        if not self.api_key:
-            return False
-        try:
-            resp = httpx.get(f"{self.base_url}/models", headers=self._headers(), timeout=timeout)
-            return resp.status_code == 200
-        except Exception:
-            return False
+        return ["*"]
 
 
-class OllamaProvider(BaseProvider):
+class OllamaProvider(OpenAICompatibleProvider):
     """Ollama local API provider (OpenAI-compatible endpoint)."""
 
     name = "ollama"
     requires_key = False
+    _timeout = _OLLAMA_TIMEOUT
 
     def __init__(self, **kw: Any):
         super().__init__(**kw)
         self.base_url = self.base_url or "http://localhost:11434/v1"
         self.model = self.model or "llama3.2"
-
-    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
-        body = {
-            "model": self.model,
-            "messages": messages,
-            "max_tokens": kw.get("max_tokens", 4096),
-            "temperature": kw.get("temperature", 0.7),
-            "stream": stream,
-        }
-        url = f"{self.base_url}/chat/completions"
-        headers = self._headers()
-
-        if not stream:
-            def do_req():
-                return httpx.Client(timeout=httpx.Timeout(300, connect=10)).post(url, json=body, headers=headers)
-            resp = _retry_request(do_req, max_retries=1)
-            if resp.status_code != 200:
-                raise Exception(f"Ollama error {resp.status_code}: {resp.text}")
-            yield resp.json()["choices"][0]["message"]["content"]
-            return
-
-        with httpx.Client(timeout=httpx.Timeout(300, connect=10)) as client:
-            with client.stream("POST", url, json=body, headers=headers) as resp:
-                if resp.status_code != 200:
-                    raise Exception(f"Ollama error {resp.status_code}: {resp.read().decode()}")
-                for line in resp.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data.strip() == "[DONE]":
-                        break
-                    try:
-                        delta = json.loads(data).get("choices", [{}])[0].get("delta", {})
-                        c = delta.get("content", "")
-                        if c:
-                            yield c
-                    except json.JSONDecodeError:
-                        continue
 
     def list_models(self) -> List[str]:
         try:
@@ -607,15 +407,16 @@ class OllamaProvider(BaseProvider):
             pass
         return ["llama3.2", "codellama", "mistral", "qwen2.5-coder"]
 
-    def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
-        return 0.0
-
     def validate_connection(self, timeout: float = 10.0) -> bool:
         try:
             resp = httpx.get(f"{self.base_url.replace('/v1', '')}/api/tags", timeout=timeout)
             return resp.status_code == 200
         except Exception:
             return False
+
+    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
+        kw["max_tokens"] = kw.get("max_tokens", 4096)
+        return super().send_message(messages, stream, **kw)
 
 
 # Provider registry

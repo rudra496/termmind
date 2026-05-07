@@ -116,27 +116,18 @@ class TestGitEdgeCases:
         (repo_dir / "initial.txt").write_text("changed")
         mock_client = MagicMock()
         mock_client.chat_stream.return_value = iter(["feat: add feature"])
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            ai_commit_message(mock_client, "diff content")
-        )
+        result = ai_commit_message(mock_client, "diff content")
         assert result == "feat: add feature"
 
     def test_ai_commit_message_empty_diff(self):
         mock_client = MagicMock()
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            ai_commit_message(mock_client, "")
-        )
+        result = ai_commit_message(mock_client, "")
         assert result == "chore: empty commit"
 
     def test_ai_commit_message_error(self):
         mock_client = MagicMock()
         mock_client.chat_stream.side_effect = Exception("API error")
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            ai_commit_message(mock_client, "some diff")
-        )
+        result = ai_commit_message(mock_client, "some diff")
         assert result == "chore: update"
 
 

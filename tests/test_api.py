@@ -74,9 +74,9 @@ class TestAPIClient:
         assert all(m["role"] != "system" for m in msgs)
 
     def test_estimate_tokens(self, mock_config):
-        client = APIClient()
-        assert client.estimate_tokens("hello world") == len("hello world") // 4
-        assert client.estimate_tokens("") == 0
+        from termmind.utils import estimate_tokens
+        assert estimate_tokens("hello world") == len("hello world") // 4
+        assert estimate_tokens("") == 0
 
     def test_total_tokens(self, mock_config):
         client = APIClient()

@@ -8,7 +8,25 @@ import httpx
 
 from .config import get_provider_info, load_config
 
-USER_AGENT = "TermMind/0.1.0"
+USER_AGENT = "TermMind/1.0.0"
+_TIMEOUT = httpx.Timeout(120, connect=10)
+
+_shared_client: Optional[httpx.Client] = None
+
+
+def _get_shared_client() -> httpx.Client:
+    global _shared_client
+    if _shared_client is None or _shared_client.is_closed:
+        _shared_client = httpx.Client(timeout=_TIMEOUT)
+    return _shared_client
+
+
+def close_client() -> None:
+    """Close the shared HTTP client."""
+    global _shared_client
+    if _shared_client is not None:
+        _shared_client.close()
+        _shared_client = None
 
 
 class APIError(Exception):
@@ -50,8 +68,10 @@ class APIClient:
     ) -> List[Dict[str, str]]:
         out: List[Dict[str, str]] = []
         if system_prompt:
+            out.append({"role": "system", "content": system_prompt})
+        else:
             cfg = load_config()
-            sp = system_prompt or cfg.get("system_prompt", "")
+            sp = cfg.get("system_prompt", "")
             if sp:
                 out.append({"role": "system", "content": sp})
         out.extend(messages)
@@ -84,9 +104,8 @@ class APIClient:
         }
         url = f"{self.base_url}/chat/completions"
         headers = self._headers()
-        collected = ""
         try:
-            with httpx.Client(timeout=httpx.Timeout(120, connect=10)) as client:
+            with httpx.Client(timeout=_TIMEOUT) as client:
                 with client.stream("POST", url, json=body, headers=headers) as resp:
                     if resp.status_code != 200:
                         err = resp.read().decode(errors="replace")
@@ -102,10 +121,11 @@ class APIClient:
                             delta = parsed.get("choices", [{}])[0].get("delta", {})
                             content = delta.get("content", "")
                             if content:
-                                collected += content
                                 yield content
                         except json.JSONDecodeError:
                             continue
+        except APIError:
+            raise
         except httpx.ConnectError:
             raise APIError(f"Cannot connect to {self.base_url}. Is the service running?")
         except httpx.TimeoutException:
@@ -117,19 +137,18 @@ class APIClient:
         last_err = None
         for attempt in range(retries):
             try:
-                with httpx.Client(timeout=httpx.Timeout(120, connect=10)) as client:
-                    resp = client.post(url, json=body, headers=headers)
-                    if resp.status_code == 429:
-                        wait = 2 ** (attempt + 1)
-                        time.sleep(wait)
-                        continue
-                    if resp.status_code != 200:
-                        raise APIError(f"API error {resp.status_code}: {resp.text}", resp.status_code)
-                    data = resp.json()
-                    usage = data.get("usage", {})
-                    self.usage["prompt_tokens"] += usage.get("prompt_tokens", 0)
-                    self.usage["completion_tokens"] += usage.get("completion_tokens", 0)
-                    return data["choices"][0]["message"]["content"]
+                resp = _get_shared_client().post(url, json=body, headers=headers)
+                if resp.status_code == 429:
+                    wait = 2 ** (attempt + 1)
+                    time.sleep(wait)
+                    continue
+                if resp.status_code != 200:
+                    raise APIError(f"API error {resp.status_code}: {resp.text}", resp.status_code)
+                data = resp.json()
+                usage = data.get("usage", {})
+                self.usage["prompt_tokens"] += usage.get("prompt_tokens", 0)
+                self.usage["completion_tokens"] += usage.get("completion_tokens", 0)
+                return data["choices"][0]["message"]["content"]
             except (httpx.ConnectError, httpx.TimeoutException) as e:
                 last_err = e
                 if attempt < retries - 1:
@@ -140,10 +159,6 @@ class APIClient:
             except Exception as e:
                 raise APIError(str(e))
         raise APIError(f"Failed after {retries} retries: {last_err}")
-
-    def estimate_tokens(self, text: str) -> int:
-        """Rough token count: ~4 chars per token."""
-        return len(text) // 4
 
     def get_cost(self) -> float:
         """Estimate session cost based on usage."""

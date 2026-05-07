@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from .file_ops import find_files, read_file, _is_ignored, _load_ignores, get_file_info
+from .utils import estimate_tokens
 
 # Cache: path -> (content, mtime)
 _context_cache: Dict[str, Tuple[str, float]] = {}
@@ -33,13 +34,6 @@ def _read_cached(path: str) -> Optional[str]:
 def clear_cache() -> None:
     """Clear the context file cache."""
     _context_cache.clear()
-
-
-def estimate_tokens(text: str) -> int:
-    """Rough token estimation (~4 chars per token for English)."""
-    if not text:
-        return 0
-    return len(text) // 4
 
 
 def _extract_imports(content: str) -> Set[str]:

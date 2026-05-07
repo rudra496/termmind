@@ -99,7 +99,7 @@ def git_get_remote_url(cwd: str = ".") -> str:
     return out if rc == 0 else ""
 
 
-async def ai_commit_message(client_api: object, diff_text: str) -> str:
+def ai_commit_message(client_api: object, diff_text: str) -> str:
     """Generate a conventional commit message from diff using AI."""
     if not diff_text.strip():
         return "chore: empty commit"

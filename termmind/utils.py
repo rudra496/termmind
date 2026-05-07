@@ -5,8 +5,6 @@ from typing import Dict, Optional
 
 from rich.console import Console
 from rich.markdown import Markdown
-from rich.syntax import Syntax
-from rich.theme import Theme
 
 # Cost per 1k tokens for various models
 MODEL_COSTS: Dict[str, Dict[str, float]] = {
