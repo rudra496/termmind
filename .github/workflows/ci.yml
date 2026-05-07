@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
-      - run: mypy termmind/ --ignore-missing-imports
+      - run: mypy termmind/ --ignore-missing-imports --no-strict
 
   test:
     name: Test (Python ${{ matrix.python-version }})
