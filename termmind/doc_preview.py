@@ -14,10 +14,9 @@ Supports: Python, JavaScript, TypeScript, Go, Rust, Java.
 import ast
 import os
 import re
-import textwrap
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional
 
 from rich.console import Console
 from rich.panel import Panel
@@ -26,8 +25,6 @@ from rich.table import Table
 from rich.text import Text
 
 from .file_ops import find_files, read_file
-from .memory import build_index, load_index, query_functions, query_classes
-
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -43,7 +40,7 @@ class DocEntry:
     docstring: str = ""
     file: str = ""
     line: int = 0
-    params: List[Dict[str, str]] = field(default_factory=list)
+    params: list[dict[str, str]] = field(default_factory=list)
     language: str = ""
     parent_class: str = ""
     module: str = ""
@@ -53,17 +50,16 @@ class DocEntry:
 # Per-language docstring extractors
 # ---------------------------------------------------------------------------
 
-def _extract_python_docstring(filepath: str, content: str) -> List[DocEntry]:
+def _extract_python_docstring(filepath: str, content: str) -> list[DocEntry]:
     """Parse a Python file with ast and extract docstrings."""
-    entries: List[DocEntry] = []
+    entries: list[DocEntry] = []
     try:
         tree = ast.parse(content, filename=filepath)
     except SyntaxError:
         return entries
 
-    def _params_str(func_node: ast.FunctionDef) -> Tuple[str, List[Dict[str, str]], str]:
+    def _params_str(func_node: ast.FunctionDef) -> tuple[str, list[dict[str, str]], str]:
         """Build signature parts from an AST function node."""
-        import inspect
         params = []
         for arg in func_node.args.args:
             annotation = ast.unparse(arg.annotation) if arg.annotation else ""
@@ -158,10 +154,10 @@ def _extract_python_docstring(filepath: str, content: str) -> List[DocEntry]:
     return entries
 
 
-def _extract_js_ts_docstring(filepath: str, content: str) -> List[DocEntry]:
+def _extract_js_ts_docstring(filepath: str, content: str) -> list[DocEntry]:
     """Extract JSDoc comments for JS/TS functions and classes."""
-    entries: List[DocEntry] = []
-    lines = content.splitlines()
+    entries: list[DocEntry] = []
+    content.splitlines()
     ext = Path(filepath).suffix.lower()
     lang = "typescript" if ext in (".ts", ".tsx") else "javascript"
 
@@ -241,7 +237,7 @@ def _extract_js_ts_docstring(filepath: str, content: str) -> List[DocEntry]:
     return entries
 
 
-def _parse_js_params(params_str: str) -> List[Dict[str, str]]:
+def _parse_js_params(params_str: str) -> list[dict[str, str]]:
     """Parse JS/TS function parameters into structured list."""
     params = []
     if not params_str.strip():
@@ -269,9 +265,9 @@ def _parse_js_params(params_str: str) -> List[Dict[str, str]]:
     return params
 
 
-def _extract_go_docstring(filepath: str, content: str) -> List[DocEntry]:
+def _extract_go_docstring(filepath: str, content: str) -> list[DocEntry]:
     """Extract Go doc comments for functions and types."""
-    entries: List[DocEntry] = []
+    entries: list[DocEntry] = []
     lines = content.splitlines()
 
     # Go convention: doc comment is the comment block immediately preceding the declaration
@@ -323,7 +319,7 @@ def _extract_go_docstring(filepath: str, content: str) -> List[DocEntry]:
     return entries
 
 
-def _go_doc_above(lines: List[str], idx: int) -> str:
+def _go_doc_above(lines: list[str], idx: int) -> str:
     """Collect Go doc comment block above line idx."""
     doc_lines = []
     i = idx - 1
@@ -334,9 +330,9 @@ def _go_doc_above(lines: List[str], idx: int) -> str:
     return "\n".join(doc_lines).strip()
 
 
-def _extract_rust_docstring(filepath: str, content: str) -> List[DocEntry]:
+def _extract_rust_docstring(filepath: str, content: str) -> list[DocEntry]:
     """Extract Rust doc comments (/// and //!) for functions and structs."""
-    entries: List[DocEntry] = []
+    entries: list[DocEntry] = []
     lines = content.splitlines()
 
     for i, line in enumerate(lines):
@@ -382,13 +378,13 @@ def _extract_rust_docstring(filepath: str, content: str) -> List[DocEntry]:
             # Scan forward for methods
             j = i + 1
             while j < len(lines):
-                l = lines[j].strip()
-                if l.startswith("}"):
+                line = lines[j].strip()
+                if line.startswith("}"):
                     break
                 m = re.match(
                     r"(?:pub\s+)?(?:async\s+)?fn\s+(\w+)(?:<[^>]*>)?\s*\(([^)]*)\)"
                     r"(?:\s*->\s*([^,{]+))?",
-                    l,
+                    line,
                 )
                 if m:
                     mname = m.group(1)
@@ -409,7 +405,7 @@ def _extract_rust_docstring(filepath: str, content: str) -> List[DocEntry]:
     return entries
 
 
-def _rust_doc_above(lines: List[str], idx: int) -> str:
+def _rust_doc_above(lines: list[str], idx: int) -> str:
     """Collect Rust doc comments (///) above line idx."""
     doc_lines = []
     i = idx - 1
@@ -420,7 +416,7 @@ def _rust_doc_above(lines: List[str], idx: int) -> str:
     return "\n".join(doc_lines).strip()
 
 
-def _parse_rust_params(params_str: str) -> List[Dict[str, str]]:
+def _parse_rust_params(params_str: str) -> list[dict[str, str]]:
     """Parse Rust function parameters."""
     params = []
     if not params_str.strip():
@@ -442,9 +438,9 @@ def _parse_rust_params(params_str: str) -> List[Dict[str, str]]:
     return params
 
 
-def _extract_java_docstring(filepath: str, content: str) -> List[DocEntry]:
+def _extract_java_docstring(filepath: str, content: str) -> list[DocEntry]:
     """Extract Javadoc for Java methods and classes."""
-    entries: List[DocEntry] = []
+    entries: list[DocEntry] = []
 
     # Match Javadoc /** ... */ followed by class or method
     pattern = re.compile(
@@ -495,7 +491,7 @@ def _extract_java_docstring(filepath: str, content: str) -> List[DocEntry]:
     return entries
 
 
-def _parse_java_params(params_str: str) -> List[Dict[str, str]]:
+def _parse_java_params(params_str: str) -> list[dict[str, str]]:
     """Parse Java method parameters: Type name, Type name, ..."""
     params = []
     if not params_str.strip():
@@ -528,7 +524,7 @@ _EXTRACTORS = {
 }
 
 
-def extract_docs(filepath: str, content: Optional[str] = None) -> List[DocEntry]:
+def extract_docs(filepath: str, content: Optional[str] = None) -> list[DocEntry]:
     """Extract all doc entries from a file."""
     if content is None:
         content = read_file(filepath)
@@ -544,9 +540,9 @@ def extract_docs(filepath: str, content: Optional[str] = None) -> List[DocEntry]
     return []
 
 
-def extract_all_docs(project_root: str) -> List[DocEntry]:
+def extract_all_docs(project_root: str) -> list[DocEntry]:
     """Extract docs from all supported files in the project."""
-    all_entries: List[DocEntry] = []
+    all_entries: list[DocEntry] = []
     files = find_files(project_root, max_depth=8)
     for filepath in files:
         ext = Path(filepath).suffix.lower()
@@ -559,7 +555,7 @@ def extract_all_docs(project_root: str) -> List[DocEntry]:
 # Query & lookup
 # ---------------------------------------------------------------------------
 
-def lookup_symbol(project_root: str, query: str) -> List[DocEntry]:
+def lookup_symbol(project_root: str, query: str) -> list[DocEntry]:
     """Look up a symbol by name. Supports dotted paths like 'module.Class.method'."""
     # Try to load cached index; fall back to fresh extract
     entries = extract_all_docs(project_root)
@@ -588,7 +584,7 @@ def lookup_symbol(project_root: str, query: str) -> List[DocEntry]:
             ]
             # If class found, also grab its methods
             if matches:
-                cls = matches[0]
+                matches[0]
                 matches.extend(
                     e for e in entries
                     if e.parent_class == cls_name
@@ -624,7 +620,7 @@ def lookup_symbol(project_root: str, query: str) -> List[DocEntry]:
     return unique[:10]
 
 
-def list_file_docs(project_root: str, filepath: str) -> List[DocEntry]:
+def list_file_docs(project_root: str, filepath: str) -> list[DocEntry]:
     """List all documented symbols in a specific file."""
     full_path = filepath
     if not os.path.isabs(full_path):
@@ -632,7 +628,7 @@ def list_file_docs(project_root: str, filepath: str) -> List[DocEntry]:
     return extract_docs(full_path)
 
 
-def suggest_symbols(project_root: str, prefix: str) -> List[DocEntry]:
+def suggest_symbols(project_root: str, prefix: str) -> list[DocEntry]:
     """Suggest symbols matching a prefix (for autocomplete)."""
     entries = extract_all_docs(project_root)
     prefix_lower = prefix.lower()
@@ -665,7 +661,6 @@ def render_doc_entry(entry: DocEntry, console: Console) -> None:
 
     # Signature
     sig_text = Text(entry.signature)
-    lang = entry.language or "python"
     body_parts.append(Panel(sig_text, title="[bold]Signature[/bold]", border_style="blue", expand=False))
 
     # Location
@@ -710,7 +705,7 @@ def render_doc_entry(entry: DocEntry, console: Console) -> None:
     console.print(Panel(inner, title=header, border_style="cyan", expand=False, padding=(1, 2)))
 
 
-def render_doc_list(entries: List[DocEntry], console: Console, title: str = "Documentation") -> None:
+def render_doc_list(entries: list[DocEntry], console: Console, title: str = "Documentation") -> None:
     """Render a list of DocEntries as a table."""
     if not entries:
         console.print("[dim]No documentation entries found.[/dim]")

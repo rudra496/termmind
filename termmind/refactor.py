@@ -3,14 +3,10 @@
 import difflib
 import json
 import os
-import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
 from rich.console import Console
-from rich.panel import Panel
-from rich.syntax import Syntax
 from rich.table import Table
 
 from .config import CONFIG_DIR
@@ -457,7 +453,7 @@ def cmd_refactor(rest: str, messages, client, console: Console, cwd: str, ctx_fi
     instruction = parts[2] if len(parts) > 2 else ""
 
     if not operation:
-        console.print(f"[error]Usage: /refactor <operation> <filepath> [instruction][/error]")
+        console.print("[error]Usage: /refactor <operation> <filepath> [instruction][/error]")
         console.print(f"[dim]Operations: {', '.join(VALID_OPERATIONS)}[/dim]")
         return
 
@@ -470,7 +466,7 @@ def cmd_refactor(rest: str, messages, client, console: Console, cwd: str, ctx_fi
         return
 
     if operation not in VALID_OPERATIONS or not filepath:
-        console.print(f"[error]Usage: /refactor <operation> <filepath> [instruction][/error]")
+        console.print("[error]Usage: /refactor <operation> <filepath> [instruction][/error]")
         console.print(f"[dim]Operations: {', '.join(VALID_OPERATIONS)}[/dim]")
         return
 

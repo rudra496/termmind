@@ -5,7 +5,10 @@ import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from .session import Session
 
 PLUGIN_DIR = Path.home() / ".termmind" / "plugins"
 
@@ -16,29 +19,25 @@ class BasePlugin(ABC):
     name: str = "unnamed"
     description: str = ""
 
+    @abstractmethod
     def on_start(self, session: "Session") -> None:
         """Called when a chat session starts."""
-        pass
 
-    def on_message(self, message: str, role: str = "user") -> None:
+    def on_message(self, message: str, role: str = "user") -> None:  # noqa: B027
         """Called when a message is sent/received."""
-        pass
 
-    def on_response(self, response: str) -> None:
+    def on_response(self, response: str) -> None:  # noqa: B027
         """Called after AI responds."""
-        pass
 
-    def on_edit(self, filepath: str, old_content: str, new_content: str) -> None:
+    def on_edit(self, filepath: str, old_content: str, new_content: str) -> None:  # noqa: B027
         """Called after a file edit."""
-        pass
 
     def on_command(self, command: str, args: str) -> Optional[bool]:
         """Called when a slash command is invoked. Return True to indicate handled."""
         return None
 
-    def on_exit(self) -> None:
+    def on_exit(self) -> None:  # noqa: B027
         """Called when session ends."""
-        pass
 
 
 class TodoTrackerPlugin(BasePlugin):
@@ -47,7 +46,7 @@ class TodoTrackerPlugin(BasePlugin):
     name = "todo_tracker"
     description = "Extract and track TODO/FIXME/HACK from code"
     _pattern = re.compile(r"#\s*(TODO|FIXME|HACK|XXX|BUG)\b[:\s]*(.*)", re.IGNORECASE)
-    _todo_items: List[Dict[str, str]] = []
+    _todo_items: list[dict[str, str]] = []
 
     def on_edit(self, filepath: str, old_content: str, new_content: str) -> None:
         for line in new_content.splitlines():
@@ -59,7 +58,7 @@ class TodoTrackerPlugin(BasePlugin):
                     "file": filepath,
                 })
 
-    def get_todos(self) -> List[Dict[str, str]]:
+    def get_todos(self) -> list[dict[str, str]]:
         return list(self._todo_items)
 
 
@@ -68,7 +67,7 @@ class CodeStatsPlugin(BasePlugin):
 
     name = "code_stats"
     description = "Display code statistics after edits"
-    _edit_log: List[Dict[str, Any]] = []
+    _edit_log: list[dict[str, Any]] = []
 
     def on_edit(self, filepath: str, old_content: str, new_content: str) -> None:
         old_lines = len(old_content.splitlines()) if old_content else 0
@@ -79,7 +78,7 @@ class CodeStatsPlugin(BasePlugin):
             "lines_removed": max(0, old_lines - new_lines),
         })
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         total_added = sum(e["lines_added"] for e in self._edit_log)
         total_removed = sum(e["lines_removed"] for e in self._edit_log)
         files_edited = len(set(e["file"] for e in self._edit_log))
@@ -96,7 +95,7 @@ class AutoCommitPlugin(BasePlugin):
 
     name = "auto_commit"
     description = "Auto-stage and commit after file edits"
-    _pending_files: List[str] = []
+    _pending_files: list[str] = []
 
     def on_edit(self, filepath: str, old_content: str, new_content: str) -> None:
         if old_content != new_content:
@@ -122,12 +121,12 @@ class AutoCommitPlugin(BasePlugin):
 
 
 # Built-in plugins
-BUILTIN_PLUGINS: List[type] = [TodoTrackerPlugin, CodeStatsPlugin, AutoCommitPlugin]
+BUILTIN_PLUGINS: list[type] = [TodoTrackerPlugin, CodeStatsPlugin, AutoCommitPlugin]
 
 
-def discover_plugins() -> List[BasePlugin]:
+def discover_plugins() -> list[BasePlugin]:
     """Discover and instantiate plugins from ~/.termmind/plugins/ and built-ins."""
-    plugins: List[BasePlugin] = []
+    plugins: list[BasePlugin] = []
 
     # Built-ins
     for cls in BUILTIN_PLUGINS:

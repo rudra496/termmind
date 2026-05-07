@@ -1,11 +1,10 @@
 """Session management for TermMind."""
 
 import json
-import os
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from .config import SESSIONS_DIR
 
@@ -14,12 +13,12 @@ SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
 def save_session(
     name: str,
-    messages: List[Dict[str, str]],
+    messages: list[dict[str, str]],
     provider: str = "",
     model: str = "",
     cost: float = 0.0,
     tokens: int = 0,
-    context_files: Optional[List[str]] = None,
+    context_files: Optional[list[str]] = None,
 ) -> Path:
     """Save a chat session to disk. Returns the session file path."""
     SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
@@ -41,7 +40,7 @@ def save_session(
     return path
 
 
-def load_session(name: str) -> Optional[Dict[str, Any]]:
+def load_session(name: str) -> Optional[dict[str, Any]]:
     """Load a session by name. Returns session dict or None."""
     safe_name = re.sub(r'[^\w\-]', '_', name)
     path = SESSIONS_DIR / f"{safe_name}.json"
@@ -54,7 +53,7 @@ def load_session(name: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def list_sessions(search: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_sessions(search: Optional[str] = None) -> list[dict[str, Any]]:
     """List all saved sessions, optionally filtered by search term."""
     sessions = []
     if not SESSIONS_DIR.exists():
@@ -91,13 +90,13 @@ def delete_session(name: str) -> bool:
     return False
 
 
-def export_session(name: str, format: str = "markdown") -> Optional[str]:
+def export_session(name: str, fmt: str = "markdown") -> Optional[str]:
     """Export a session as markdown or JSON string."""
     session = load_session(name)
     if not session:
         return None
 
-    if format == "json":
+    if fmt == "json":
         return json.dumps(session, indent=2)
 
     # Markdown export

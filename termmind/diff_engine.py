@@ -3,19 +3,15 @@
 import difflib
 import os
 import re
-import shutil
-import subprocess
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
-from rich.columns import Columns
+from rich import box
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from rich import box
 
 
 class EditType(Enum):
@@ -36,8 +32,8 @@ class DiffStats:
     files_changed: int = 0
     insertions: int = 0
     deletions: int = 0
-    insertions_by_file: Dict[str, int] = field(default_factory=dict)
-    deletions_by_file: Dict[str, int] = field(default_factory=dict)
+    insertions_by_file: dict[str, int] = field(default_factory=dict)
+    deletions_by_file: dict[str, int] = field(default_factory=dict)
 
     def summary_text(self) -> str:
         """Return a human-readable summary string."""
@@ -59,7 +55,7 @@ class DiffHunk:
     new_start: int = 0
     new_count: int = 0
     header: str = ""
-    lines: List[Tuple[str, str]] = field(default_factory=list)  # (tag, text)
+    lines: list[tuple[str, str]] = field(default_factory=list)  # (tag, text)
     accepted: Optional[bool] = None  # None = not yet decided
 
     @property
@@ -82,7 +78,7 @@ class FileDiff:
     old_path: str = ""
     new_path: str = ""
     edit_type: EditType = EditType.IDENTICAL
-    hunks: List[DiffHunk] = field(default_factory=list)
+    hunks: list[DiffHunk] = field(default_factory=list)
     old_content: str = ""
     new_content: str = ""
 
@@ -105,7 +101,7 @@ class FileDiff:
 @dataclass
 class MultiFileDiff:
     """Collection of diffs across multiple files."""
-    files: List[FileDiff] = field(default_factory=list)
+    files: list[FileDiff] = field(default_factory=list)
 
     def get_stats(self) -> DiffStats:
         """Calculate aggregate statistics."""
@@ -124,7 +120,7 @@ class MultiFileDiff:
                 stats.deletions_by_file[path] = dels
         return stats
 
-    def get_changed_files(self) -> List[FileDiff]:
+    def get_changed_files(self) -> list[FileDiff]:
         """Return only files with actual changes."""
         return [f for f in self.files if f.edit_type != EditType.IDENTICAL]
 
@@ -169,9 +165,9 @@ def _detect_edit_type(old_content: str, new_content: str,
     return EditType.REPLACE
 
 
-def _parse_unified_diff(diff_text: str) -> List[DiffHunk]:
+def _parse_unified_diff(diff_text: str) -> list[DiffHunk]:
     """Parse unified diff text into hunks."""
-    hunks: List[DiffHunk] = []
+    hunks: list[DiffHunk] = []
     current_hunk: Optional[DiffHunk] = None
 
     for line in diff_text.splitlines():
@@ -234,14 +230,14 @@ def compute_diff_from_disk(old_path: str, new_content: str) -> FileDiff:
     """Compute diff between a file on disk and new content."""
     old_content = ""
     if os.path.exists(old_path):
-        with open(old_path, "r", encoding="utf-8", errors="replace") as f:
+        with open(old_path, encoding="utf-8", errors="replace") as f:
             old_content = f.read()
     return compute_file_diff(old_content, new_content,
                              old_path=old_path, new_path=old_path)
 
 
-def compute_multi_file_diff(changes: Dict[str, str],
-                            old_contents: Optional[Dict[str, str]] = None) -> MultiFileDiff:
+def compute_multi_file_diff(changes: dict[str, str],
+                            old_contents: Optional[dict[str, str]] = None) -> MultiFileDiff:
     """Compute diffs for multiple files at once.
 
     Args:
@@ -250,12 +246,12 @@ def compute_multi_file_diff(changes: Dict[str, str],
     """
     if old_contents is None:
         old_contents = {}
-    diffs: List[FileDiff] = []
+    diffs: list[FileDiff] = []
     for filepath, new_content in changes.items():
         old_content = old_contents.get(filepath, "")
         if not old_content and os.path.exists(filepath):
             try:
-                with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+                with open(filepath, encoding="utf-8", errors="replace") as f:
                     old_content = f.read()
             except OSError:
                 old_content = ""
@@ -305,8 +301,8 @@ def _render_inline_hunk(hunk: DiffHunk, line_numbers: bool = True) -> Text:
 def _render_side_by_side(hunk: DiffHunk, width: int = 80) -> Group:
     """Render a single hunk in side-by-side layout."""
     half_width = max(width // 2 - 4, 20)
-    left_lines: List[Text] = []
-    right_lines: List[Text] = []
+    left_lines: list[Text] = []
+    right_lines: list[Text] = []
 
     old_lineno = hunk.old_start
     new_lineno = hunk.new_start
@@ -541,12 +537,12 @@ def apply_hunks_interactive(file_diff: FileDiff, console: Console) -> Optional[s
 
 
 def apply_multi_diff_interactive(multi_diff: MultiFileDiff,
-                                 console: Console) -> Dict[str, Optional[str]]:
+                                 console: Console) -> dict[str, Optional[str]]:
     """Interactively review and apply diffs for multiple files.
 
     Returns dict mapping filepath -> final content (or None if skipped).
     """
-    results: Dict[str, Optional[str]] = {}
+    results: dict[str, Optional[str]] = {}
     changed = multi_diff.get_changed_files()
 
     if not changed:

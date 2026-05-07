@@ -12,7 +12,7 @@ Uses pyttsx3 if installed; gracefully falls back to a notification message.
 Only reads the final complete response (not streaming tokens).
 """
 
-import os
+import contextlib
 import threading
 from typing import Optional
 
@@ -114,10 +114,8 @@ class VoiceMode:
         speed = max(0.5, min(2.0, float(speed)))
         self.speed = speed
         if self._engine is not None:
-            try:
+            with contextlib.suppress(Exception):
                 self._engine.setProperty('rate', int(200 * speed))
-            except Exception:
-                pass
         if console:
             console.print(f"[success]🔊 Speech speed: {speed}x[/success]")
 
@@ -218,10 +216,8 @@ class VoiceMode:
         self.enabled = False
         self._stop_worker = True
         if self._engine is not None:
-            try:
+            with contextlib.suppress(Exception):
                 self._engine.stop()
-            except Exception:
-                pass
             self._engine = None
 
     def get_voices(self) -> list:
@@ -239,7 +235,7 @@ class VoiceMode:
                     "name": getattr(v, 'name', 'Unknown'),
                 }
                 if hasattr(v, 'languages'):
-                    info["languages"] = [str(l) for l in v.languages]
+                    info["languages"] = [str(lang) for lang in v.languages]
                 result.append(info)
             engine.stop()
             return result

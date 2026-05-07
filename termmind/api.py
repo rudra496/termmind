@@ -2,7 +2,8 @@
 
 import json
 import time
-from typing import Any, Dict, Generator, List, Optional
+from collections.abc import Generator
+from typing import Any, Optional
 
 import httpx
 
@@ -57,16 +58,16 @@ class APIClient:
         self.temperature = temperature if temperature is not None else cfg.get("temperature", 0.7)
         self.usage = {"prompt_tokens": 0, "completion_tokens": 0}
 
-    def _headers(self) -> Dict[str, str]:
+    def _headers(self) -> dict[str, str]:
         h = {"Content-Type": "application/json", "User-Agent": USER_AGENT}
         if self.api_key:
             h["Authorization"] = f"Bearer {self.api_key}"
         return h
 
     def _build_messages(
-        self, messages: List[Dict[str, str]], system_prompt: Optional[str] = None
-    ) -> List[Dict[str, str]]:
-        out: List[Dict[str, str]] = []
+        self, messages: list[dict[str, str]], system_prompt: Optional[str] = None
+    ) -> list[dict[str, str]]:
+        out: list[dict[str, str]] = []
         if system_prompt:
             out.append({"role": "system", "content": system_prompt})
         else:
@@ -77,7 +78,7 @@ class APIClient:
         out.extend(messages)
         return out
 
-    def chat(self, messages: List[Dict[str, str]], system_prompt: Optional[str] = None) -> str:
+    def chat(self, messages: list[dict[str, str]], system_prompt: Optional[str] = None) -> str:
         """Non-streaming chat completion."""
         body = {
             "model": self.model,
@@ -92,7 +93,7 @@ class APIClient:
         return resp.strip()
 
     def chat_stream(
-        self, messages: List[Dict[str, str]], system_prompt: Optional[str] = None
+        self, messages: list[dict[str, str]], system_prompt: Optional[str] = None
     ) -> Generator[str, None, None]:
         """Streaming chat completion — yields content deltas."""
         body = {
@@ -105,8 +106,8 @@ class APIClient:
         url = f"{self.base_url}/chat/completions"
         headers = self._headers()
         try:
-            with httpx.Client(timeout=_TIMEOUT) as client:
-                with client.stream("POST", url, json=body, headers=headers) as resp:
+            with httpx.Client(timeout=_TIMEOUT) as client, \
+                    client.stream("POST", url, json=body, headers=headers) as resp:
                     if resp.status_code != 200:
                         err = resp.read().decode(errors="replace")
                         raise APIError(f"API error {resp.status_code}: {err}", resp.status_code)
@@ -127,11 +128,13 @@ class APIClient:
         except APIError:
             raise
         except httpx.ConnectError:
-            raise APIError(f"Cannot connect to {self.base_url}. Is the service running?")
+            raise APIError(
+                f"Cannot connect to {self.base_url}. Is the service running?"
+            ) from None
         except httpx.TimeoutException:
-            raise APIError("Request timed out.")
+            raise APIError("Request timed out.") from None
 
-    def _request(self, body: Dict[str, Any], retries: int = 3) -> str:
+    def _request(self, body: dict[str, Any], retries: int = 3) -> str:
         url = f"{self.base_url}/chat/completions"
         headers = self._headers()
         last_err = None
@@ -157,7 +160,7 @@ class APIClient:
             except APIError:
                 raise
             except Exception as e:
-                raise APIError(str(e))
+                raise APIError(str(e)) from None
         raise APIError(f"Failed after {retries} retries: {last_err}")
 
     def get_cost(self) -> float:

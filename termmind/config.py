@@ -1,15 +1,14 @@
 """Configuration management for TermMind."""
 
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 CONFIG_DIR = Path.home() / ".termmind"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 SESSIONS_DIR = CONFIG_DIR / "sessions"
 
-PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
+PROVIDER_PRESETS: dict[str, dict[str, Any]] = {
     "openai": {
         "base_url": "https://api.openai.com/v1",
         "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo", "o1", "o1-mini", "o3-mini"],
@@ -68,7 +67,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
     },
 }
 
-DEFAULT_CONFIG: Dict[str, Any] = {
+DEFAULT_CONFIG: dict[str, Any] = {
     "provider": "ollama",
     "api_key": "",
     "model": "",
@@ -98,7 +97,7 @@ def _ensure_dirs() -> None:
     SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def load_config() -> Dict[str, Any]:
+def load_config() -> dict[str, Any]:
     """Load configuration from disk, merging with defaults."""
     _ensure_dirs()
     cfg = dict(DEFAULT_CONFIG)
@@ -115,21 +114,21 @@ def load_config() -> Dict[str, Any]:
     return cfg
 
 
-def save_config(cfg: Dict[str, Any]) -> None:
+def save_config(cfg: dict[str, Any]) -> None:
     """Save configuration to disk."""
     _ensure_dirs()
     with open(CONFIG_FILE, "w") as f:
         json.dump(cfg, f, indent=2)
 
 
-def get_provider_info(provider: Optional[str] = None) -> Dict[str, Any]:
+def get_provider_info(provider: Optional[str] = None) -> dict[str, Any]:
     """Get provider preset info."""
     cfg = load_config()
     name = provider or cfg.get("provider", "ollama")
     return PROVIDER_PRESETS.get(name, PROVIDER_PRESETS["ollama"])
 
 
-def update_config(key: str, value: Any) -> Dict[str, Any]:
+def update_config(key: str, value: Any) -> dict[str, Any]:
     """Update a single config key and save."""
     cfg = load_config()
     cfg[key] = value

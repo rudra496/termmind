@@ -1,10 +1,10 @@
 """Git operations."""
 
 import subprocess
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 
-def _git(args: List[str], cwd: str = ".") -> Tuple[str, int]:
+def _git(args: list[str], cwd: str = ".") -> tuple[str, int]:
     """Run a git command, return (output, return_code)."""
     try:
         r = subprocess.run(
@@ -35,7 +35,7 @@ def git_diff(cwd: str = ".", staged: bool = False, file: Optional[str] = None) -
     return out if rc == 0 else ""
 
 
-def git_commit(message: str, cwd: str = ".", add_all: bool = True) -> Tuple[str, int]:
+def git_commit(message: str, cwd: str = ".", add_all: bool = True) -> tuple[str, int]:
     """Commit changes with optional add-all."""
     if add_all:
         _git(["add", "-A"], cwd)
@@ -67,12 +67,12 @@ def git_is_repo(cwd: str = ".") -> bool:
     return rc == 0
 
 
-def git_checkout(branch: str, cwd: str = ".") -> Tuple[str, int]:
+def git_checkout(branch: str, cwd: str = ".") -> tuple[str, int]:
     """Checkout a branch."""
     return _git(["checkout", branch], cwd)
 
 
-def git_get_changed_files(cwd: str = ".") -> List[str]:
+def git_get_changed_files(cwd: str = ".") -> list[str]:
     """Get list of files changed from HEAD."""
     out, rc = _git(["diff", "--name-only", "HEAD"], cwd)
     if rc != 0 or not out:
@@ -80,7 +80,7 @@ def git_get_changed_files(cwd: str = ".") -> List[str]:
     return [f for f in out.splitlines() if f.strip()]
 
 
-def git_get_contributors(cwd: str = ".") -> List[Dict[str, str]]:
+def git_get_contributors(cwd: str = ".") -> list[dict[str, str]]:
     """Get contributors with commit counts."""
     out, rc = _git(["shortlog", "-sn", "--all"], cwd)
     if rc != 0 or not out:

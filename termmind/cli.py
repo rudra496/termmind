@@ -1,14 +1,13 @@
 """TermMind CLI — the main entry point."""
 
-import asyncio
+import contextlib
 import json
 import os
-import re
 import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import click
 from prompt_toolkit import PromptSession
@@ -17,18 +16,16 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
 from rich.markdown import Markdown
-from rich.panel import Panel
-from rich.text import Text
+from rich.table import Table
 
 from . import __version__
-from .api import APIError, APIClient
+from .api import APIClient, APIError
 from .commands import handle_command
 from .config import PROVIDER_PRESETS, load_config, save_config
 from .context import build_context
 from .file_ops import build_file_tree, find_files, read_file, write_file
 from .git import git_is_repo
 from .themes import get_theme
-from .utils import estimate_tokens, render_markdown
 
 HISTORY_FILE = Path.home() / ".termmind" / "history"
 BANNER = r"""
@@ -87,7 +84,7 @@ def _get_key_bindings():
     return kb
 
 
-def _stream_response(client: APIClient, messages: List[dict], console: Console, system_prompt: Optional[str] = None) -> str:
+def _stream_response(client: APIClient, messages: list[dict], console: Console, system_prompt: Optional[str] = None) -> str:
     """Stream response and render markdown. Returns full response text."""
     full = ""
     console.print()
@@ -127,7 +124,7 @@ def _interactive_init() -> dict:
 
     api_key = ""
     if info["requires_key"]:
-        console.print(f"\nGet your API key at the provider's website.")
+        console.print("\nGet your API key at the provider's website.")
         api_key = click.prompt(f"[info]{provider} API key[/info]", default="", show_default=False)
         # Test connection
         console.print("[system]Testing connection...[/system]")
@@ -141,7 +138,7 @@ def _interactive_init() -> dict:
         except Exception as e:
             console.print(f"[warning]⚠ Connection test error: {e}[/warning]")
 
-    console.print(f"\n[info]Available models:[/info]")
+    console.print("\n[info]Available models:[/info]")
     for m in info["models"]:
         console.print(f"  [cyan]•[/cyan] {m}")
     model = click.prompt("[info]Model[/info]", default=info["default_model"])
@@ -167,7 +164,7 @@ def _interactive_init() -> dict:
             "Be concise and practical. When showing code, use markdown code blocks with language hints.",
     }
     save_config(cfg)
-    console.print(f"\n[success]✅ Configuration saved to ~/.termmind/config.json[/success]")
+    console.print("\n[success]✅ Configuration saved to ~/.termmind/config.json[/success]")
     console.print(f"[dim]Provider: {provider} | Model: {model}[/dim]\n")
     return cfg
 
@@ -219,7 +216,7 @@ def ask(question: Optional[str], provider: Optional[str], model: Optional[str]):
 
     console.print(f"[prompt]❯[/prompt] {question}\n")
     start = time.time()
-    response = _stream_response(client, [{"role": "user", "content": user_msg}], console)
+    _stream_response(client, [{"role": "user", "content": user_msg}], console)
     elapsed = time.time() - start
     tokens = client.total_tokens()
     if tokens:
@@ -259,17 +256,15 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
 
     system_prompt = system or cfg.get("system_prompt")
 
-    messages: List[dict] = []
-    context_files: List[str] = []
+    messages: list[dict] = []
+    context_files: list[str] = []
 
     # Initialize plugins
     from .plugins import discover_plugins
     plugins = discover_plugins()
     for plugin in plugins:
-        try:
+        with contextlib.suppress(Exception):
             plugin.on_start({"messages": messages, "client": client})
-        except Exception:
-            pass
 
     HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
     session = PromptSession(
@@ -286,10 +281,8 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
         except (EOFError, KeyboardInterrupt):
             # Run plugin exit hooks
             for plugin in plugins:
-                try:
+                with contextlib.suppress(Exception):
                     plugin.on_exit()
-                except Exception:
-                    pass
             console.print("\n[dim]👋 Bye![/dim]")
             break
 
@@ -318,10 +311,8 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
 
         # Plugin hooks
         for plugin in plugins:
-            try:
+            with contextlib.suppress(Exception):
                 plugin.on_message(user_input, "user")
-            except Exception:
-                pass
 
         console.print("[system]🤖 Thinking...[/system]")
         start = time.time()
@@ -331,10 +322,8 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
         if response:
             messages.append({"role": "assistant", "content": response})
             for plugin in plugins:
-                try:
+                with contextlib.suppress(Exception):
                     plugin.on_response(response)
-                except Exception:
-                    pass
 
         tokens = client.total_tokens()
         if tokens:
@@ -663,7 +652,7 @@ def config():
 @click.argument("action", default="install", type=click.Choice(["install", "generate", "capabilities"]))
 def completions(action: str):
     """Manage shell completions."""
-    from .shell import install_completions, generate_all_completions, get_capability_report
+    from .shell import generate_all_completions, get_capability_report, install_completions
     if action == "install":
         success, msg = install_completions()
         if success:
@@ -686,7 +675,7 @@ def completions(action: str):
 @click.option("--query", "-q", help="Query the index for matching symbols")
 def index(path: str, force: bool, query: str):
     """Build or query the code context index."""
-    from .memory import build_index, get_project_summary, get_context_for_query
+    from .memory import build_index, get_context_for_query, get_project_summary
     console = _get_console()
     if query:
         ctx = get_context_for_query(path, query)
@@ -720,7 +709,7 @@ def index(path: str, force: bool, query: str):
 @click.option("--type", "sym_type", default="all", type=click.Choice(["all", "functions", "classes"]))
 def symbols(path: str, pattern: str, sym_type: str):
     """List functions and classes in the project index."""
-    from .memory import query_functions, query_classes, build_index
+    from .memory import query_classes, query_functions
     console = _get_console()
     table = Table(title="Symbols", border_style="dim")
     table.add_column("Name", style="cyan")

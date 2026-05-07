@@ -1,10 +1,9 @@
 """Cost Optimizer — track and optimize API costs across providers."""
 
 import json
-import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
 from pathlib import Path
+from typing import Optional
 
 # Cost per 1K tokens for each provider (approximate)
 PRICING = {
@@ -47,7 +46,7 @@ class CostOptimizer:
     def __init__(self, config_dir: str = "~/.termmind"):
         self.config_dir = Path(config_dir).expanduser()
         self.history_file = self.config_dir / "cost_history.json"
-        self.session_costs: List[Dict] = []
+        self.session_costs: list[dict] = []
         self.budget: Optional[float] = None
         self.budget_warned = False
         self._load_history()
@@ -70,7 +69,7 @@ class CostOptimizer:
         }
         self.history_file.write_text(json.dumps(data, indent=2))
 
-    def get_pricing(self, provider: str, model: str) -> Dict[str, float]:
+    def get_pricing(self, provider: str, model: str) -> dict[str, float]:
         """Get pricing for a provider+model combo."""
         provider_prices = PRICING.get(provider, {})
         if model in provider_prices:
@@ -87,7 +86,7 @@ class CostOptimizer:
                 output_tokens * prices["output"] / 1000)
 
     def record_request(self, provider: str, model: str,
-                       input_tokens: int, output_tokens: int) -> Dict:
+                       input_tokens: int, output_tokens: int) -> dict:
         """Record a request and return cost info."""
         cost = self.estimate_cost(provider, model, input_tokens, output_tokens)
         entry = {
@@ -131,7 +130,7 @@ class CostOptimizer:
         self.budget = amount
         self.budget_warned = False
 
-    def get_budget_status(self) -> Optional[Dict]:
+    def get_budget_status(self) -> Optional[dict]:
         """Get budget status."""
         if self.budget is None:
             return None
@@ -143,7 +142,7 @@ class CostOptimizer:
             "percent": round((total / self.budget) * 100, 1) if self.budget > 0 else 0,
         }
 
-    def get_breakdown_by_provider(self) -> Dict[str, float]:
+    def get_breakdown_by_provider(self) -> dict[str, float]:
         """Get cost breakdown by provider for current session."""
         today = datetime.now().strftime("%Y-%m-%d")
         breakdown = {}
@@ -153,7 +152,7 @@ class CostOptimizer:
                 breakdown[p] = breakdown.get(p, 0) + entry["cost"]
         return {k: round(v, 4) for k, v in sorted(breakdown.items(), key=lambda x: -x[1])}
 
-    def get_breakdown_by_model(self) -> Dict[str, float]:
+    def get_breakdown_by_model(self) -> dict[str, float]:
         """Get cost breakdown by model for current session."""
         today = datetime.now().strftime("%Y-%m-%d")
         breakdown = {}
@@ -163,7 +162,7 @@ class CostOptimizer:
                 breakdown[m] = breakdown.get(m, 0) + entry["cost"]
         return {k: round(v, 4) for k, v in sorted(breakdown.items(), key=lambda x: -x[1])}
 
-    def get_daily_history(self, days: int = 30) -> List[Dict]:
+    def get_daily_history(self, days: int = 30) -> list[dict]:
         """Get daily cost totals for the last N days."""
         daily = {}
         cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -173,7 +172,7 @@ class CostOptimizer:
                 daily[day] = daily.get(day, 0) + entry["cost"]
         return [{"date": k, "cost": round(v, 4)} for k, v in sorted(daily.items())]
 
-    def get_token_stats(self) -> Dict[str, int]:
+    def get_token_stats(self) -> dict[str, int]:
         """Get total tokens used in current session."""
         today = datetime.now().strftime("%Y-%m-%d")
         stats = {"input": 0, "output": 0, "total": 0, "requests": 0}
@@ -185,7 +184,7 @@ class CostOptimizer:
         stats["total"] = stats["input"] + stats["output"]
         return stats
 
-    def compare_providers(self, input_tokens: int, output_tokens: int) -> List[Dict]:
+    def compare_providers(self, input_tokens: int, output_tokens: int) -> list[dict]:
         """Compare estimated costs across all providers."""
         comparisons = []
         for provider, models in PRICING.items():
@@ -204,7 +203,7 @@ class CostOptimizer:
         return sorted(comparisons, key=lambda x: x["cost"])
 
     def suggest_savings(self, provider: str, model: str,
-                        input_tokens: int, output_tokens: int) -> List[Dict]:
+                        input_tokens: int, output_tokens: int) -> list[dict]:
         """Suggest cheaper alternatives for current usage."""
         current_cost = self.estimate_cost(provider, model, input_tokens, output_tokens)
         alternatives = []
@@ -222,7 +221,7 @@ class CostOptimizer:
                 })
         return sorted(alternatives, key=lambda x: -x["savings_percent"])[:5]
 
-    def optimize_context(self, messages: List[Dict], provider: str, model: str) -> Dict:
+    def optimize_context(self, messages: list[dict], provider: str, model: str) -> dict:
         """Analyze context and suggest optimizations to save tokens."""
         total_tokens = sum(len(str(m.get("content", "")).split()) * 1.3
                          for m in messages)

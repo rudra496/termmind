@@ -17,7 +17,7 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 RECORDINGS_DIR = Path.home() / ".termmind" / "recordings"
 
@@ -29,9 +29,9 @@ class SessionRecorder:
         self.cwd = cwd
         self.recording = False
         self.name = ""
-        self.events: List[Dict[str, Any]] = []
+        self.events: list[dict[str, Any]] = []
         self.start_time: Optional[float] = None
-        self._file_snapshots: Dict[str, str] = {}
+        self._file_snapshots: dict[str, str] = {}
 
     def start(self, name: Optional[str] = None) -> str:
         """Start recording. Returns the recording name."""
@@ -92,8 +92,8 @@ class SessionRecorder:
             "old_content": old_content[:10000],
             "new_content": new_content[:10000],
             "diff": diff[:5000],
-            "lines_added": sum(1 for l in new_lines if not l.startswith("-")),
-            "lines_removed": sum(1 for l in old_lines if not l.startswith("+")),
+            "lines_added": sum(1 for ln in new_lines if not ln.startswith("-")),
+            "lines_removed": sum(1 for ln in old_lines if not ln.startswith("+")),
         })
 
     def record_command(self, command: str, output: str, exit_code: int):
@@ -155,7 +155,7 @@ class SessionRecorder:
         })
 
 
-def list_recordings() -> List[Dict[str, Any]]:
+def list_recordings() -> list[dict[str, Any]]:
     """List all saved recordings."""
     RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
     recordings = []
@@ -183,13 +183,10 @@ def list_recordings() -> List[Dict[str, Any]]:
     return recordings
 
 
-def load_recording(name: str) -> Optional[Dict[str, Any]]:
+def load_recording(name: str) -> Optional[dict[str, Any]]:
     """Load a recording by name or path."""
     filepath = Path(name)
-    if filepath.exists():
-        target = filepath
-    else:
-        target = RECORDINGS_DIR / f"{name}.json"
+    target = filepath if filepath.exists() else RECORDINGS_DIR / f"{name}.json"
     if not target.exists():
         return None
     try:

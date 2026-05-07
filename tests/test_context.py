@@ -1,7 +1,8 @@
 """Tests for context management."""
 
 import pytest
-from termmind.context import extract_relevant_files, build_context, clear_cache, _score_file, estimate_tokens
+from termmind.context import extract_relevant_files, build_context, clear_cache, _score_file
+from termmind.utils import estimate_tokens
 from pathlib import Path
 from unittest.mock import patch
 

@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-ELI5_SYSTEM_PROMPT = """You are an AI assistant that explains things in the simplest possible terms, as if talking to a curious 5-year-old child. 
+ELI5_SYSTEM_PROMPT = """You are an AI assistant that explains things in the simplest possible terms, as if talking to a curious 5-year-old child.
 
 Rules:
 - Use very simple words and short sentences

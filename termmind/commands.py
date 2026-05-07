@@ -1,33 +1,41 @@
 """Chat slash commands for interactive mode."""
 
-import json
 import os
 import re
 from datetime import datetime
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Callable
 
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
-from .config import CONFIG_DIR, SESSIONS_DIR, PROVIDER_PRESETS, load_config, save_config
+from . import __version__
+from .config import PROVIDER_PRESETS, load_config, save_config
 from .file_ops import (
-    edit_file, find_files, get_session_diffs, get_undo_history,
-    read_file, search_in_files, undo_last_edit, undo_all_edits,
-    write_file, build_file_tree, grep_files,
+    build_file_tree,
+    find_files,
+    get_session_diffs,
+    get_undo_history,
+    grep_files,
+    read_file,
+    search_in_files,
+    undo_all_edits,
+    undo_last_edit,
+    write_file,
 )
 from .git import (
-    git_status, git_diff, git_is_repo, git_log, git_branch,
-    git_checkout, git_commit, git_get_changed_files, git_get_remote_url,
+    git_branch,
+    git_checkout,
+    git_commit,
+    git_diff,
+    git_is_repo,
+    git_log,
+    git_status,
 )
-from .sessions import list_sessions, load_session, save_session, export_session
-from .themes import list_themes
-from .utils import calculate_cost, estimate_tokens, render_markdown
+from .refactor import cmd_refactor
+from .sessions import export_session, list_sessions, load_session, save_session
 from .snippets import cmd_snippet
 from .templates import cmd_template
-from .refactor import cmd_refactor
-from . import __version__
+from .themes import list_themes
 
 if TYPE_CHECKING:
     from .api import APIClient
@@ -36,18 +44,18 @@ if TYPE_CHECKING:
 def handle_command(
     cmd: str,
     args: str,
-    messages: List[Dict[str, str]],
+    messages: list[dict[str, str]],
     client: "APIClient",
     console: Console,
     cwd: str,
-    context_files: List[str],
+    context_files: list[str],
 ) -> bool:
     """Handle a slash command. Returns True if handled."""
     parts = args.strip().split(maxsplit=1)
     sub = parts[0] if parts else ""
     rest = parts[1] if len(parts) > 1 else ""
 
-    handlers: Dict[str, Callable] = {
+    handlers: dict[str, Callable] = {
         "help": cmd_help, "edit": cmd_edit, "run": cmd_run, "files": cmd_files,
         "add": cmd_add, "remove": cmd_remove, "clear": cmd_clear, "save": cmd_save,
         "load": cmd_load, "sessions": cmd_sessions, "model": cmd_model,
@@ -394,22 +402,6 @@ def cmd_providers(rest: str, messages, client, console, cwd, ctx_files):
     console.print(table)
 
 
-def cmd_cost(rest: str, messages, client, console, cwd, ctx_files):
-    tokens = client.total_tokens()
-    cost = client.get_cost()
-    table = Table(title="Session Cost", border_style="dim")
-    table.add_column("Metric", style="bold cyan")
-    table.add_column("Value")
-    table.add_row("Provider", client.provider)
-    table.add_row("Model", client.model)
-    table.add_row("Total tokens", f"{tokens:,}")
-    table.add_row("Prompt tokens", f"{client.usage['prompt_tokens']:,}")
-    table.add_row("Completion tokens", f"{client.usage['completion_tokens']:,}")
-    table.add_row("Estimated cost", f"${cost:.6f}")
-    table.add_row("Messages", str(len([m for m in messages if m['role'] == 'user'])))
-    console.print(table)
-
-
 def cmd_theme(rest: str, messages, client, console, cwd, ctx_files):
     if not rest:
         cfg = load_config()
@@ -457,7 +449,6 @@ def cmd_diff(rest: str, messages, client, console, cwd, ctx_files):
             if os.path.abspath(fp) == os.path.abspath(p):
                 fd = compute_diff_from_disk(p, content)
                 # Temporarily set old_content for rendering
-                import dataclasses
                 fd.old_content = old_content
                 fd.hunks = []
                 import difflib
@@ -477,9 +468,9 @@ def cmd_diff(rest: str, messages, client, console, cwd, ctx_files):
     if not diffs:
         console.print("[system]No changes this session.[/system]")
         return
-    from .diff_engine import compute_file_diff, render_diff_inline, MultiFileDiff
+    from .diff_engine import MultiFileDiff, compute_file_diff, render_diff_inline
     multi = MultiFileDiff()
-    for filepath, diff in diffs:
+    for filepath, _diff in diffs:
         multi.files.append(compute_file_diff("", "", filepath, filepath))
     # Fallback to simple display
     for filepath, diff in diffs:
@@ -540,7 +531,6 @@ def cmd_git(rest: str, messages, client, console, cwd, ctx_files):
         if not diff_text.strip():
             console.print("[system]Nothing to commit.[/system]")
             return
-        import asyncio
         from .git import ai_commit_message
         console.print("[system]🤖 Generating commit message...[/system]")
         try:
@@ -548,7 +538,6 @@ def cmd_git(rest: str, messages, client, console, cwd, ctx_files):
         except Exception:
             commit_msg = "chore: update"
         console.print(f"[info]Suggested:[/info] {commit_msg}")
-        from prompt_toolkit import prompt
         confirm = input("Commit with this message? [Y/n] ").strip().lower()
         if confirm in ("", "y", "yes"):
             out, rc = git_commit(commit_msg, cwd)
@@ -659,11 +648,12 @@ def cmd_system(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_index(rest: str, messages, client, console, cwd, ctx_files):
     import time
+
     from .memory import build_index, get_project_summary
     force = "--force" in rest or "-f" in rest
     console.print("[system]Building code index...[/system]")
     start = time.time()
-    idx = build_index(cwd, force=force)
+    build_index(cwd, force=force)
     elapsed = time.time() - start
     summary = get_project_summary(cwd)
     table = Table(title="Code Index", border_style="dim")
@@ -678,7 +668,7 @@ def cmd_index(rest: str, messages, client, console, cwd, ctx_files):
 
 
 def cmd_symbols(rest: str, messages, client, console, cwd, ctx_files):
-    from .memory import query_functions, query_classes, build_index
+    from .memory import query_classes, query_functions
     parts = rest.strip().split(maxsplit=1)
     pattern = parts[0] if parts else ""
     table = Table(title="Symbols", border_style="dim")

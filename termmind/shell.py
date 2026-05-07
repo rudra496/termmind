@@ -1,21 +1,19 @@
 """Shell Integration — detect shell capabilities, generate completions."""
 
 import os
-import re
 import shutil
-import sys
 import signal
 
 try:
-    import struct
-    import fcntl
-    import termios
+    import fcntl  # noqa: F401
+    import struct  # noqa: F401
+    import termios  # noqa: F401
     HAS_TERMIOS = True
 except ImportError:
     HAS_TERMIOS = False
+import contextlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-
+from typing import Any, Optional
 
 # ─── Shell Detection ──────────────────────────────────────────────────────────
 
@@ -62,7 +60,7 @@ def get_shell_config_path(shell: Optional[str] = None) -> Optional[str]:
     shell = shell or detect_shell()
     home = str(Path.home())
 
-    candidates: Dict[str, List[str]] = {
+    candidates: dict[str, list[str]] = {
         "bash": [
             os.path.join(home, ".bashrc"),
             os.path.join(home, ".bash_profile"),
@@ -93,7 +91,7 @@ def get_shell_config_path(shell: Optional[str] = None) -> Optional[str]:
 
 # ─── Terminal Capabilities ────────────────────────────────────────────────────
 
-def get_terminal_size() -> Tuple[int, int]:
+def get_terminal_size() -> tuple[int, int]:
     """Get terminal dimensions (rows, columns). Returns (24, 80) as fallback."""
     try:
         cols, rows = os.get_terminal_size()
@@ -109,9 +107,7 @@ def supports_truecolor() -> bool:
         return True
     # Check TERM
     term = os.environ.get("TERM", "")
-    if term in ("xterm-256color", "screen-256color", "tmux-256color"):
-        return True
-    return False
+    return term in ("xterm-256color", "screen-256color", "tmux-256color")
 
 
 def supports_unicode() -> bool:
@@ -127,11 +123,7 @@ def supports_unicode() -> bool:
 
     # Common terminals that support Unicode
     term = os.environ.get("TERM_PROGRAM", "")
-    if term in ("iTerm.app", "WezTerm", "Hyper", "ghostty", "kitty",
-                "vscode", "WindowsTerminal"):
-        return True
-
-    return False
+    return term in ("iTerm.app", "WezTerm", "Hyper", "ghostty", "kitty", "vscode", "WindowsTerminal")
 
 
 def supports_emoji() -> bool:
@@ -141,17 +133,15 @@ def supports_emoji() -> bool:
     # Most modern terminals with Unicode support can render emoji
     term_program = os.environ.get("TERM_PROGRAM", "")
     no_emoji_terms = {"Apple_Terminal", "Terminal"}
-    if term_program in no_emoji_terms:
-        return False
-    return True
+    return term_program not in no_emoji_terms
 
 
-def detect_copy_paste_support() -> Dict[str, bool]:
+def detect_copy_paste_support() -> dict[str, bool]:
     """Detect clipboard/copy-paste support.
 
     Returns dict with keys: 'osc52', 'xclip', 'xsel', 'pbcopy', 'tmux'.
     """
-    result: Dict[str, bool] = {
+    result: dict[str, bool] = {
         "osc52": False,
         "xclip": False,
         "xsel": False,
@@ -175,7 +165,7 @@ def detect_copy_paste_support() -> Dict[str, bool]:
     return result
 
 
-def get_capability_report() -> Dict[str, Any]:
+def get_capability_report() -> dict[str, Any]:
     """Get a full report of terminal capabilities."""
     rows, cols = get_terminal_size()
     return {
@@ -193,7 +183,7 @@ def get_capability_report() -> Dict[str, Any]:
 
 # ─── Auto-resize Handling ────────────────────────────────────────────────────
 
-_resize_callbacks: List = []
+_resize_callbacks: list = []
 
 
 def on_resize(callback) -> None:
@@ -206,20 +196,16 @@ def on_resize(callback) -> None:
 
 def setup_resize_handler() -> None:
     """Set up signal handler for SIGWINCH (terminal resize)."""
-    try:
+    with contextlib.suppress(OSError, ValueError):
         signal.signal(signal.SIGWINCH, _handle_resize)
-    except (OSError, ValueError):
-        pass
 
 
 def _handle_resize(signum, frame) -> None:
     """Internal handler for SIGWINCH."""
     rows, cols = get_terminal_size()
     for callback in _resize_callbacks:
-        try:
+        with contextlib.suppress(Exception):
             callback(rows, cols)
-        except Exception:
-            pass
 
 
 # ─── Completion Script Generation ─────────────────────────────────────────────
@@ -360,7 +346,7 @@ complete -F _termmind_completions termmind
 def generate_zsh_completion() -> str:
     """Generate a Zsh completion script for termmind."""
     commands_list = " \\\n    ".join(f'"{c}"' for c in TERMIND_COMMANDS)
-    chat_list = " \\\n    ".join(f'"{c}"' for c in TERMIND_CHAT_COMMANDS)
+    " \\\n    ".join(f'"{c}"' for c in TERMIND_CHAT_COMMANDS)
 
     return f'''#compdef termmind
 
@@ -424,7 +410,7 @@ complete -c termmind -f -n '__fish_seen_subcommand_from ask'
 '''
 
 
-def install_completions(shell: Optional[str] = None) -> Tuple[bool, str]:
+def install_completions(shell: Optional[str] = None) -> tuple[bool, str]:
     """Install shell completion scripts.
 
     Returns (success, message).
@@ -490,7 +476,7 @@ def install_completions(shell: Optional[str] = None) -> Tuple[bool, str]:
         return False, f"Shell completions not supported for: {shell}"
 
 
-def generate_all_completions(output_dir: str) -> Dict[str, str]:
+def generate_all_completions(output_dir: str) -> dict[str, str]:
     """Generate all completion scripts and save to a directory.
 
     Returns dict of shell -> file path.

@@ -2,12 +2,10 @@
 
 import os
 import re
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
 from .config import CONFIG_DIR
@@ -16,7 +14,7 @@ CUSTOM_TEMPLATES_DIR = CONFIG_DIR / "templates"
 
 # ── Built-in template definitions ────────────────────────────────────
 
-BUILTIN_TEMPLATES: Dict[str, Dict[str, Any]] = {
+BUILTIN_TEMPLATES: dict[str, dict[str, Any]] = {
     "python-package": {
         "description": "Modern Python package with pyproject.toml, tests, and CI",
         "files": {
@@ -937,14 +935,14 @@ def _resolve_name(project_name: str) -> str:
     return re.sub(r'[^a-z0-9]', '_', project_name.lower()).strip('_') or "myproject"
 
 
-def _expand_template_vars(content: str, variables: Dict[str, str]) -> str:
+def _expand_template_vars(content: str, variables: dict[str, str]) -> str:
     """Replace {{var}} placeholders in template content."""
     for key, value in variables.items():
         content = content.replace(f"{{{{{key}}}}}", value)
     return content
 
 
-def list_templates() -> List[Dict[str, str]]:
+def list_templates() -> list[dict[str, str]]:
     """List all available templates (built-in + custom)."""
     templates = []
     for name, tmpl in BUILTIN_TEMPLATES.items():
@@ -972,7 +970,7 @@ def use_template(
     project_name: Optional[str] = None,
     description: Optional[str] = None,
     author: Optional[str] = None,
-) -> Tuple[int, List[str]]:
+) -> tuple[int, list[str]]:
     """Generate a project from a template. Returns (file_count, instructions)."""
     import json
 

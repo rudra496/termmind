@@ -7,10 +7,10 @@ import re
 import shutil
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 # Global edit history for undo support
-_edit_history: List[Tuple[str, str, str]] = []  # (filepath, old_content, timestamp)
+_edit_history: list[tuple[str, str, str]] = []  # (filepath, old_content, timestamp)
 
 
 def _detect_encoding(path: Path) -> str:
@@ -93,7 +93,7 @@ def backup_file(path: str) -> Optional[str]:
     return bak_path
 
 
-def get_file_info(path: str) -> Optional[Dict[str, object]]:
+def get_file_info(path: str) -> Optional[dict[str, object]]:
     """Get detailed file info: size, mtime, encoding, language, lines."""
     p = Path(path)
     if not p.exists():
@@ -156,7 +156,7 @@ def apply_diff(path: str, diff_text: str) -> bool:
     return False
 
 
-def _apply_unified_diff(original: List[str], diff_text: str) -> Optional[List[str]]:
+def _apply_unified_diff(original: list[str], diff_text: str) -> Optional[list[str]]:
     """Simple unified diff applier."""
     diff_lines = diff_text.splitlines(keepends=True)
     result = list(original)
@@ -170,8 +170,8 @@ def _apply_unified_diff(original: List[str], diff_text: str) -> Optional[List[st
                 i += 1
                 continue
             old_start = int(match.group(1))
-            old_count = int(match.group(2) or 1)
-            new_count = int(match.group(4) or 1)
+            int(match.group(2) or 1)
+            int(match.group(4) or 1)
             i += 1
             removals = []
             additions = []
@@ -186,9 +186,7 @@ def _apply_unified_diff(original: List[str], diff_text: str) -> Optional[List[st
                 elif stripped.startswith("-"):
                     removals.append(stripped[1:] + "\n")
                     i += 1
-                elif stripped.startswith(" "):
-                    i += 1
-                elif stripped == "":
+                elif stripped.startswith(" ") or stripped == "":
                     i += 1
                 else:
                     break
@@ -206,9 +204,9 @@ def _apply_unified_diff(original: List[str], diff_text: str) -> Optional[List[st
 def find_files(
     directory: str = ".",
     pattern: str = "*",
-    ignore_patterns: Optional[List[str]] = None,
+    ignore_patterns: Optional[list[str]] = None,
     max_depth: int = 10,
-) -> List[str]:
+) -> list[str]:
     """Find files matching pattern, respecting ignore lists."""
     d = Path(directory)
     if not d.exists():
@@ -228,7 +226,7 @@ def find_files(
     return sorted(results)
 
 
-def search_in_files(query: str, directory: str = ".") -> List[Tuple[str, int, str]]:
+def search_in_files(query: str, directory: str = ".") -> list[tuple[str, int, str]]:
     """Search for text in files. Returns (path, line_no, line)."""
     results = []
     try:
@@ -248,7 +246,7 @@ def search_in_files(query: str, directory: str = ".") -> List[Tuple[str, int, st
     return results
 
 
-def grep_files(pattern: str, directory: str = ".", context_lines: int = 0) -> List[Dict[str, object]]:
+def grep_files(pattern: str, directory: str = ".", context_lines: int = 0) -> list[dict[str, object]]:
     """Grep through project files with optional context. Returns list of match dicts."""
     results = []
     try:
@@ -274,7 +272,7 @@ def grep_files(pattern: str, directory: str = ".", context_lines: int = 0) -> Li
     return results[:100]
 
 
-def get_undo_history() -> List[Tuple[str, str, str]]:
+def get_undo_history() -> list[tuple[str, str, str]]:
     """Return all edits in history."""
     return list(_edit_history)
 
@@ -303,7 +301,7 @@ def undo_all_edits() -> int:
     return count
 
 
-def get_session_diffs() -> List[Tuple[str, str]]:
+def get_session_diffs() -> list[tuple[str, str]]:
     """Get all files changed this session with their diffs."""
     diffs = []
     seen = set()
@@ -347,7 +345,7 @@ def build_file_tree(directory: str = ".", max_depth: int = 3, show_sizes: bool =
 
 
 def _walk_tree(
-    path: Path, lines: List[str], prefix: str, ignores: set, max_depth: int, depth: int, show_sizes: bool = False
+    path: Path, lines: list[str], prefix: str, ignores: set, max_depth: int, depth: int, show_sizes: bool = False
 ) -> None:
     if depth >= max_depth:
         return

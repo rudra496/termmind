@@ -1,14 +1,14 @@
 """Snippet Manager — save, search, and reuse code snippets from conversations."""
 
+import contextlib
 import json
 import os
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
 from .config import CONFIG_DIR
@@ -42,7 +42,7 @@ def _snippet_path(name: str) -> Path:
     return _ensure_snippets_dir() / f"{safe_name}.json"
 
 
-def _list_snippet_files() -> List[Path]:
+def _list_snippet_files() -> list[Path]:
     """List all snippet JSON files."""
     _ensure_snippets_dir()
     return sorted(SNIPPETS_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
@@ -53,17 +53,15 @@ def save_snippet(
     description: str = "",
     language: str = "",
     code: str = "",
-    tags: Optional[List[str]] = None,
+    tags: Optional[list[str]] = None,
     conversation_context: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Save a new snippet. If one with the same name exists, update it."""
     path = _snippet_path(name)
     existing = None
     if path.exists():
-        try:
+        with contextlib.suppress(json.JSONDecodeError, OSError):
             existing = json.loads(path.read_text())
-        except (json.JSONDecodeError, OSError):
-            pass
 
     snippet = {
         "name": name,
@@ -81,7 +79,7 @@ def save_snippet(
     return snippet
 
 
-def load_snippet(name: str, expand_templates: bool = True, ctx: Optional[Dict[str, str]] = None) -> Optional[Dict[str, Any]]:
+def load_snippet(name: str, expand_templates: bool = True, ctx: Optional[dict[str, str]] = None) -> Optional[dict[str, Any]]:
     """Load a snippet by name."""
     path = _snippet_path(name)
     if not path.exists():
@@ -95,10 +93,8 @@ def load_snippet(name: str, expand_templates: bool = True, ctx: Optional[Dict[st
     if expand_templates and snippet.get("code"):
         context = ctx or {}
         for var, resolver in TEMPLATE_VARS.items():
-            try:
+            with contextlib.suppress(Exception):
                 snippet["code"] = snippet["code"].replace(var, resolver(context))
-            except Exception:
-                pass
 
     # Increment usage count
     snippet["usage_count"] = snippet.get("usage_count", 0) + 1
@@ -115,7 +111,7 @@ def delete_snippet(name: str) -> bool:
     return False
 
 
-def list_snippets(tag: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+def list_snippets(tag: Optional[str] = None, limit: int = 50) -> list[dict[str, Any]]:
     """List all snippets, optionally filtered by tag."""
     results = []
     for path in _list_snippet_files():
@@ -131,7 +127,7 @@ def list_snippets(tag: Optional[str] = None, limit: int = 50) -> List[Dict[str, 
     return results
 
 
-def search_snippets(query: str) -> List[Dict[str, Any]]:
+def search_snippets(query: str) -> list[dict[str, Any]]:
     """Search snippets by name, description, tags, or code content."""
     query_lower = query.lower()
     results = []
@@ -177,7 +173,7 @@ def export_snippets(filepath: str) -> int:
     return len(snippets)
 
 
-def import_snippets(filepath: str, overwrite: bool = False) -> Tuple[int, int]:
+def import_snippets(filepath: str, overwrite: bool = False) -> tuple[int, int]:
     """Import snippets from a JSON file. Returns (imported, skipped)."""
     path = Path(filepath)
     if not path.exists():
@@ -208,7 +204,7 @@ def import_snippets(filepath: str, overwrite: bool = False) -> Tuple[int, int]:
     return imported, skipped
 
 
-def suggest_snippets(conversation: str, limit: int = 3) -> List[Dict[str, Any]]:
+def suggest_snippets(conversation: str, limit: int = 3) -> list[dict[str, Any]]:
     """Auto-suggest relevant snippets based on conversation context."""
     if not conversation.strip():
         return []

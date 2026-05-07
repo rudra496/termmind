@@ -7,9 +7,9 @@ import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Optional
 
-from .file_ops import find_files, read_file, _is_ignored
+from .file_ops import find_files, read_file
 
 # Storage layout:
 #   ~/.termmind/memory/<project-hash>/index.json
@@ -18,7 +18,7 @@ from .file_ops import find_files, read_file, _is_ignored
 MEMORY_DIR = Path.home() / ".termmind" / "memory"
 
 # Supported languages and their comment/definition patterns
-LANG_PATTERNS: Dict[str, Dict[str, Any]] = {
+LANG_PATTERNS: dict[str, dict[str, Any]] = {
     ".py": {
         "functions": re.compile(
             r"^\s*(?:async\s+)?def\s+(\w+)\s*\(([^)]*)\)(?:\s*->\s*([^:]+))?",
@@ -130,16 +130,16 @@ class FunctionInfo:
     signature: str
     return_type: str = ""
     line: int = 0
-    decorators: List[str] = field(default_factory=list)
+    decorators: list[str] = field(default_factory=list)
 
 
 @dataclass
 class ClassInfo:
     """Information about a single class."""
     name: str
-    bases: List[str] = field(default_factory=list)
+    bases: list[str] = field(default_factory=list)
     line: int = 0
-    methods: List[str] = field(default_factory=list)
+    methods: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -149,13 +149,13 @@ class FileIndex:
     mtime: float = 0.0
     hash: str = ""
     language: str = ""
-    functions: List[Dict[str, Any]] = field(default_factory=list)
-    classes: List[Dict[str, Any]] = field(default_factory=list)
-    imports: List[str] = field(default_factory=list)
+    functions: list[dict[str, Any]] = field(default_factory=list)
+    classes: list[dict[str, Any]] = field(default_factory=list)
+    imports: list[str] = field(default_factory=list)
     line_count: int = 0
     size_bytes: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "path": self.path,
             "mtime": self.mtime,
@@ -169,7 +169,7 @@ class FileIndex:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "FileIndex":
+    def from_dict(cls, d: dict[str, Any]) -> "FileIndex":
         fi = cls()
         fi.path = d.get("path", "")
         fi.mtime = d.get("mtime", 0.0)
@@ -188,14 +188,14 @@ class ProjectIndex:
     """Complete index for a project."""
     project_hash: str = ""
     project_root: str = ""
-    files: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    files: dict[str, dict[str, Any]] = field(default_factory=dict)
     indexed_at: float = 0.0
     total_files: int = 0
     total_functions: int = 0
     total_classes: int = 0
-    file_hash_map: Dict[str, str] = field(default_factory=dict)  # path -> content hash
+    file_hash_map: dict[str, str] = field(default_factory=dict)  # path -> content hash
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "project_hash": self.project_hash,
             "project_root": self.project_root,
@@ -208,7 +208,7 @@ class ProjectIndex:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "ProjectIndex":
+    def from_dict(cls, d: dict[str, Any]) -> "ProjectIndex":
         pi = cls()
         pi.project_hash = d.get("project_hash", "")
         pi.project_root = d.get("project_root", "")
@@ -274,7 +274,7 @@ def _parse_file(filepath: str, content: str) -> FileIndex:
         size_bytes=len(content.encode("utf-8")),
     )
 
-    lines = content.splitlines()
+    content.splitlines()
 
     # Extract functions
     func_pattern = patterns["functions"]
@@ -351,7 +351,7 @@ def load_index(project_root: str) -> Optional[ProjectIndex]:
     if not ipath.exists():
         return None
     try:
-        with open(ipath, "r") as f:
+        with open(ipath) as f:
             data = json.load(f)
         return ProjectIndex.from_dict(data)
     except (json.JSONDecodeError, OSError, KeyError):
@@ -467,7 +467,7 @@ def _incremental_update(existing: ProjectIndex, project_root: str) -> ProjectInd
     deleted_files = indexed_set - current_set
     possibly_changed = current_set & indexed_set
 
-    changed_files: Set[str] = set()
+    changed_files: set[str] = set()
     for filepath in possibly_changed:
         try:
             current_hash = _file_hash_fast(filepath)
@@ -547,7 +547,7 @@ def _incremental_update(existing: ProjectIndex, project_root: str) -> ProjectInd
 
 
 def query_functions(project_root: str, name_pattern: str = "",
-                    filepath: str = "") -> List[Dict[str, Any]]:
+                    filepath: str = "") -> list[dict[str, Any]]:
     """Query functions in the project index.
 
     Args:
@@ -581,7 +581,7 @@ def query_functions(project_root: str, name_pattern: str = "",
     return results
 
 
-def query_classes(project_root: str, name_pattern: str = "") -> List[Dict[str, Any]]:
+def query_classes(project_root: str, name_pattern: str = "") -> list[dict[str, Any]]:
     """Query classes in the project index."""
     index = load_index(project_root)
     if not index:
@@ -601,7 +601,7 @@ def query_classes(project_root: str, name_pattern: str = "") -> List[Dict[str, A
     return results
 
 
-def query_imports(project_root: str, module: str = "") -> List[Dict[str, str]]:
+def query_imports(project_root: str, module: str = "") -> list[dict[str, str]]:
     """Query which files import a given module."""
     index = load_index(project_root)
     if not index:
@@ -619,14 +619,14 @@ def query_imports(project_root: str, module: str = "") -> List[Dict[str, str]]:
     return results
 
 
-def get_project_summary(project_root: str) -> Dict[str, Any]:
+def get_project_summary(project_root: str) -> dict[str, Any]:
     """Get a summary of the project index for display."""
     index = load_index(project_root)
     if not index:
         index = build_index(project_root)
 
     # Count by language
-    lang_counts: Dict[str, int] = {}
+    lang_counts: dict[str, int] = {}
     for fdata in index.files.values():
         lang = fdata.get("language", "unknown")
         lang_counts[lang] = lang_counts.get(lang, 0) + 1
@@ -655,8 +655,8 @@ def get_context_for_query(project_root: str, query: str) -> str:
     if not query_words:
         return ""
 
-    scored_entries: List[Tuple[float, str]] = []
-    seen_files: Set[str] = set()
+    scored_entries: list[tuple[float, str]] = []
+    seen_files: set[str] = set()
 
     for fpath, fdata in index.files.items():
         fname = Path(fpath).stem.lower()
@@ -695,7 +695,7 @@ def get_context_for_query(project_root: str, query: str) -> str:
 
     scored_entries.sort(key=lambda x: x[0], reverse=True)
     parts = [f"## Code Index ({len(scored_entries)} matches)"]
-    for score, entry in scored_entries[:30]:
+    for _score, entry in scored_entries[:30]:
         parts.append(entry)
 
     if len(scored_entries) > 30:

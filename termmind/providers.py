@@ -3,11 +3,10 @@
 import json
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, List, Optional
+from collections.abc import Generator
+from typing import Any, Optional
 
 import httpx
-
-from .config import load_config, get_provider_info
 
 USER_AGENT = "TermMind/1.0.0"
 _TIMEOUT = httpx.Timeout(120, connect=10)
@@ -45,13 +44,13 @@ class BaseProvider(ABC):
 
     @abstractmethod
     def send_message(
-        self, messages: List[Dict[str, str]], stream: bool = False, **kwargs: Any
+        self, messages: list[dict[str, str]], stream: bool = False, **kwargs: Any
     ) -> Generator[str, None, None]:
         """Send messages and yield content chunks (or one chunk if not streaming)."""
         ...
 
     @abstractmethod
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         """Return available model names."""
         ...
 
@@ -65,7 +64,7 @@ class BaseProvider(ABC):
         """Test if connection works. Returns True on success."""
         ...
 
-    def _headers(self, extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    def _headers(self, extra: Optional[dict[str, str]] = None) -> dict[str, str]:
         h = {"Content-Type": "application/json", "User-Agent": USER_AGENT}
         if self.api_key:
             h["Authorization"] = f"Bearer {self.api_key}"
@@ -81,8 +80,8 @@ class OpenAICompatibleProvider(BaseProvider):
     The streaming and non-streaming logic is handled here.
     """
 
-    _costs: Dict[str, tuple] = {}
-    _models: List[str] = []
+    _costs: dict[str, tuple] = {}
+    _models: list[str] = []
     _timeout: httpx.Timeout = _TIMEOUT
 
     def __init__(self, **kw: Any):
@@ -90,7 +89,7 @@ class OpenAICompatibleProvider(BaseProvider):
         if self.base_url:
             self.base_url = self.base_url.rstrip("/")
 
-    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
+    def send_message(self, messages: list[dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
         body = {
             "model": self.model,
             "messages": messages,
@@ -108,8 +107,8 @@ class OpenAICompatibleProvider(BaseProvider):
             yield resp.json()["choices"][0]["message"]["content"]
             return
 
-        with httpx.Client(timeout=self._timeout) as client:
-            with client.stream("POST", url, json=body, headers=headers) as resp:
+        with httpx.Client(timeout=self._timeout) as client, \
+                client.stream("POST", url, json=body, headers=headers) as resp:
                 if resp.status_code != 200:
                     raise Exception(f"{self.name.title()} error {resp.status_code}: {resp.read().decode()}")
                 for line in resp.iter_lines():
@@ -126,7 +125,7 @@ class OpenAICompatibleProvider(BaseProvider):
                     except json.JSONDecodeError:
                         continue
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         return list(self._models)
 
     def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
@@ -145,7 +144,7 @@ class OpenAICompatibleProvider(BaseProvider):
             return False
 
 
-def _retry_request(func, max_retries: int = 3, retry_on: Optional[List[int]] = None) -> Any:
+def _retry_request(func, max_retries: int = 3, retry_on: Optional[list[int]] = None) -> Any:
     """Execute func with exponential backoff on retryable status codes."""
     retry_on = retry_on or [429, 500, 502, 503]
     last_err = None
@@ -210,7 +209,7 @@ class AnthropicProvider(BaseProvider):
         self.base_url = self.base_url or "https://api.anthropic.com"
         self.model = self.model or "claude-sonnet-4-20250514"
 
-    def _anthropic_headers(self) -> Dict[str, str]:
+    def _anthropic_headers(self) -> dict[str, str]:
         return {
             "Content-Type": "application/json",
             "User-Agent": USER_AGENT,
@@ -219,7 +218,7 @@ class AnthropicProvider(BaseProvider):
             "anthropic-dangerous-direct-browser-access": "true",
         }
 
-    def _convert_messages(self, messages: List[Dict[str, str]]) -> tuple:
+    def _convert_messages(self, messages: list[dict[str, str]]) -> tuple:
         """Convert OpenAI-style messages to Anthropic format. Returns (system, anthropic_messages)."""
         system = ""
         anth_messages = []
@@ -230,9 +229,9 @@ class AnthropicProvider(BaseProvider):
                 anth_messages.append({"role": msg["role"], "content": msg["content"]})
         return system, anth_messages
 
-    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
+    def send_message(self, messages: list[dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
         system, anth_messages = self._convert_messages(messages)
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "model": self.model,
             "messages": anth_messages,
             "max_tokens": kw.get("max_tokens", 4096),
@@ -256,8 +255,8 @@ class AnthropicProvider(BaseProvider):
                     yield block["text"]
             return
 
-        with httpx.Client(timeout=_TIMEOUT) as client:
-            with client.stream("POST", url, json=body, headers=headers) as resp:
+        with httpx.Client(timeout=_TIMEOUT) as client, \
+                client.stream("POST", url, json=body, headers=headers) as resp:
                 if resp.status_code != 200:
                     raise Exception(f"Anthropic error {resp.status_code}: {resp.read().decode()}")
                 for line in resp.iter_lines():
@@ -275,7 +274,7 @@ class AnthropicProvider(BaseProvider):
                     except json.JSONDecodeError:
                         continue
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         return list(self._models)
 
     def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
@@ -376,13 +375,13 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         self.base_url = self.base_url or "https://openrouter.ai/api/v1"
         self.model = self.model or "openai/gpt-4o-mini"
 
-    def _headers(self, extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    def _headers(self, extra: Optional[dict[str, str]] = None) -> dict[str, str]:
         h = super()._headers(extra)
         h["HTTP-Referer"] = "https://github.com/rudra496/termmind"
         h["X-Title"] = "TermMind"
         return h
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         return ["*"]
 
 
@@ -398,7 +397,7 @@ class OllamaProvider(OpenAICompatibleProvider):
         self.base_url = self.base_url or "http://localhost:11434/v1"
         self.model = self.model or "llama3.2"
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         try:
             resp = httpx.get(f"{self.base_url.replace('/v1', '')}/api/tags", timeout=5)
             if resp.status_code == 200:
@@ -414,13 +413,13 @@ class OllamaProvider(OpenAICompatibleProvider):
         except Exception:
             return False
 
-    def send_message(self, messages: List[Dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
+    def send_message(self, messages: list[dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
         kw["max_tokens"] = kw.get("max_tokens", 4096)
         return super().send_message(messages, stream, **kw)
 
 
 # Provider registry
-PROVIDERS: Dict[str, type] = {
+PROVIDERS: dict[str, type] = {
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
     "gemini": GeminiProvider,

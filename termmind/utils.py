@@ -1,13 +1,13 @@
 """Utility functions: token counting, cost calculation, markdown rendering."""
 
 import re
-from typing import Dict, Optional
+from typing import Optional
 
 from rich.console import Console
 from rich.markdown import Markdown
 
 # Cost per 1k tokens for various models
-MODEL_COSTS: Dict[str, Dict[str, float]] = {
+MODEL_COSTS: dict[str, dict[str, float]] = {
     "gpt-4o": {"input": 0.005, "output": 0.015},
     "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
     "gpt-4-turbo": {"input": 0.01, "output": 0.03},

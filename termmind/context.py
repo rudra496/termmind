@@ -2,16 +2,13 @@
 
 import os
 import re
-import time
-from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Optional
 
-from .file_ops import find_files, read_file, _is_ignored, _load_ignores, get_file_info
-from .utils import estimate_tokens
+from .file_ops import find_files, read_file
 
 # Cache: path -> (content, mtime)
-_context_cache: Dict[str, Tuple[str, float]] = {}
+_context_cache: dict[str, tuple[str, float]] = {}
 MAX_CONTEXT_CHARS = 60_000
 
 
@@ -36,9 +33,9 @@ def clear_cache() -> None:
     _context_cache.clear()
 
 
-def _extract_imports(content: str) -> Set[str]:
+def _extract_imports(content: str) -> set[str]:
     """Extract import references from Python code."""
-    imports: Set[str] = set()
+    imports: set[str] = set()
     for m in re.finditer(r"^(?:from\s+([\w.]+)\s+import|import\s+([\w.,\s]+))", content, re.MULTILINE):
         module = m.group(1) or m.group(2) or ""
         for part in module.replace(" as ", ",").split(","):
@@ -101,10 +98,10 @@ def _score_file(filepath: str, query: str, cwd: str) -> float:
     return score
 
 
-def extract_relevant_files(query: str, directory: str = ".", max_files: int = 20) -> List[str]:
+def extract_relevant_files(query: str, directory: str = ".", max_files: int = 20) -> list[str]:
     """Find files relevant to a query, ranked by relevance score."""
     # Extract explicit file references
-    refs: Set[str] = set()
+    refs: set[str] = set()
     for match in re.finditer(
         r"""[\w./\-]+\.(?:py|js|ts|go|rs|java|rb|c|cpp|h|cs|php|sh|bash|yaml|yml|toml|json|md|txt|html|css|sql|r|swift|kt|scala|lua|vim)""",
         query, re.IGNORECASE
@@ -155,11 +152,11 @@ def extract_relevant_files(query: str, directory: str = ".", max_files: int = 20
 def build_context(
     query: str,
     directory: str = ".",
-    extra_files: Optional[List[str]] = None,
+    extra_files: Optional[list[str]] = None,
     max_tokens: int = 80000,
 ) -> str:
     """Build context string from relevant files and file tree."""
-    parts: List[str] = []
+    parts: list[str] = []
 
     # File tree
     from .file_ops import build_file_tree
@@ -222,6 +219,6 @@ def _smart_truncate(content: str, max_chars: int) -> str:
     return f"{head}\n\n... ({omitted} lines omitted) ...\n\n{tail}"
 
 
-def get_files_in_context(directory: str = ".") -> List[str]:
+def get_files_in_context(directory: str = ".") -> list[str]:
     """List files that would be included in context."""
     return find_files(directory, max_depth=5)[:20]
