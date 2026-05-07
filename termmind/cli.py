@@ -645,7 +645,7 @@ def config():
     if display.get("api_key"):
         key = display["api_key"]
         display["api_key"] = f"{key[:8]}...{key[-4:]}" if len(key) > 12 else "****"
-    console.print_json(json=display)
+    console.print_json(data=display)
 
 
 @main.command()
@@ -740,7 +740,7 @@ def doctors():
     checks = [
         ("Python", lambda: f"{sys.version}"),
         ("click", lambda: importlib.import_module("click").__version__),
-        ("rich", lambda: importlib.import_module("rich").__version__),
+        ("rich", lambda: importlib.metadata.version("rich")),
         ("httpx", lambda: importlib.import_module("httpx").__version__),
         ("prompt_toolkit", lambda: importlib.import_module("prompt_toolkit").__version__),
     ]
