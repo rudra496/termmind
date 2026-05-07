@@ -252,6 +252,15 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 4. Push to the branch (`git push origin feature/amazing`)
 5. Open a Pull Request
 
+## 📚 Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) — Module design and data flow
+- [FAQ](docs/FAQ.md) — Frequently asked questions
+- [Changelog](CHANGELOG.md) — Version history
+- [Roadmap](ROADMAP.md) — Planned features
+- [Support](SUPPORT.md) — Getting help
+- [Examples](examples/README.md) — Usage examples
+
 ## 📄 License
 
 MIT License — see [LICENSE](LICENSE) for details.
