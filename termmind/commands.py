@@ -73,6 +73,10 @@ def handle_command(
         "record": cmd_record,
         "voice": cmd_voice,
         "eli5": cmd_eli5,
+        "scan": cmd_scan,
+        "generate": cmd_generate,
+        "prompt": cmd_prompt,
+        "suggest": cmd_suggest,
     }
     handler = handlers.get(sub)
     if handler:
@@ -151,6 +155,19 @@ def cmd_help(rest: str, messages, client, console, cwd, ctx_files):
         ("/refactor extract-class <f>", "Extract into a class", False),
         ("/refactor history", "Show refactor history", False),
         ("/refactor undo", "Undo last refactoring", False),
+        ("Security", "", True),
+        ("/scan [path]", "Scan for security issues", False),
+        ("/scan ai <file>", "AI deep security review", False),
+        ("Code Generation", "", True),
+        ("/generate <type> \"desc\"", "Generate code from description", False),
+        ("/generate", "List available templates", False),
+        ("Prompt Library", "", True),
+        ("/prompt list", "List prompt templates", False),
+        ("/prompt use <name>", "Use a prompt template", False),
+        ("/prompt save <name>", "Save current msg as template", False),
+        ("/prompt categories", "List categories", False),
+        ("Suggestions", "", True),
+        ("/suggest", "Get contextual action suggestions", False),
     ]
     for cmd, desc, is_header in commands:
         if is_header:
@@ -884,3 +901,171 @@ def cmd_cost(rest: str, messages, client, console, cwd, ctx_files):
   /cost optimize      — Suggest context optimizations
   /cost compare       — Compare provider costs
   /cost save          — Save cost history""")
+
+
+def cmd_scan(rest: str, messages, client, console, cwd, ctx_files):
+    """Security scanner."""
+    from .security import scan_directory, scan_file, ScanResult
+    parts = rest.strip().split(maxsplit=1)
+    sub = parts[0] if parts else ""
+    target = parts[1] if len(parts) > 1 else cwd
+
+    if sub == "ai":
+        # AI-powered security review
+        target_path = target if target != cwd else "."
+        from .file_ops import read_file as _read
+        import os as _os
+        full_path = _os.path.join(cwd, target_path) if not _os.path.isabs(target_path) else target_path
+        content = _read(full_path)
+        if content is None:
+            console.print(f"[error]File not found: {target_path}[/error]")
+            return
+        from .security import ai_security_review
+        console.print(f"[system]🤖 AI security review of {target_path}...[/system]\n")
+        response = ai_security_review(client, target_path, content)
+        from rich.markdown import Markdown
+        console.print(Markdown(response))
+        return
+
+    console.print(f"[system]🔍 Scanning {target}...[/system]")
+    import os as _os
+    full_path = _os.path.join(cwd, target) if not _os.path.isabs(target) else target
+    from pathlib import Path as _Path
+    p = _Path(full_path)
+
+    if p.is_file():
+        issues = scan_file(full_path)
+        result = ScanResult(files_scanned=1, issues=issues)
+    else:
+        result = scan_directory(full_path)
+
+    summary = result.summary()
+    from rich.table import Table as _Table
+    table = _Table(title="Security Scan Results", border_style="dim")
+    table.add_column("Metric", style="bold cyan")
+    table.add_column("Value")
+    table.add_row("Files scanned", str(result.files_scanned))
+    table.add_row("Total issues", str(summary.get("total", len(result.issues))))
+    table.add_row("Critical", f"[red]{summary.get('critical', 0)}[/red]")
+    table.add_row("High", f"[yellow]{summary.get('high', 0)}[/yellow]")
+    table.add_row("Medium", f"[cyan]{summary.get('medium', 0)}[/cyan]")
+    table.add_row("Low", f"[dim]{summary.get('low', 0)}[/dim]")
+    console.print(table)
+
+    if result.issues:
+        console.print()
+        for issue in result.issues[:15]:
+            sev_color = {"critical": "red", "high": "yellow", "medium": "cyan", "low": "dim"}.get(issue.severity, "dim")
+            console.print(f"  [{sev_color}][{issue.severity.upper()}][/{sev_color}] {issue.title}")
+            console.print(f"    [file_path]{issue.file}:{issue.line}[/file_path]")
+            if issue.recommendation:
+                console.print(f"    [green]Fix: {issue.recommendation}[/green]")
+            console.print()
+
+
+def cmd_generate(rest: str, messages, client, console, cwd, ctx_files):
+    """Code generation from description."""
+    from .codegen import generate_code, list_template_types
+    if not rest.strip():
+        console.print("[bold]Available generation templates:[/bold]")
+        for t in list_template_types():
+            console.print(f"  [cyan]•[/cyan] {t}")
+        console.print("\nUsage: [command]/generate <type> \"description\"[/command]")
+        return
+
+    parts = rest.strip().split(maxsplit=1)
+    template_type = parts[0]
+    description = parts[1] if len(parts) > 1 else ""
+
+    if not description:
+        console.print("[error]Usage: /generate <type> \"description\"[/error]")
+        return
+
+    console.print(f"[system]🤖 Generating {template_type} code...[/system]\n")
+    response = generate_code(client, description, template_type)
+    from rich.markdown import Markdown
+    console.print(Markdown(response))
+
+
+def cmd_prompt(rest: str, messages, client, console, cwd, ctx_files):
+    """Prompt library management."""
+    from .promptlib import list_templates, get_template, list_categories, save_template, PromptTemplate
+    parts = rest.strip().split(maxsplit=1)
+    sub = parts[0] if parts else ""
+    arg = parts[1] if len(parts) > 1 else ""
+
+    if sub == "list" or not sub:
+        templates = list_templates()
+        table = Table(title="Prompt Library", border_style="dim")
+        table.add_column("Name", style="cyan")
+        table.add_column("Category")
+        table.add_column("Description")
+        for t in templates:
+            table.add_row(t.name, t.category, t.description)
+        console.print(table)
+    elif sub == "categories":
+        for cat in list_categories():
+            console.print(f"  [cyan]•[/cyan] {cat}")
+    elif sub == "use" and arg:
+        t = get_template(arg)
+        if not t:
+            console.print(f"[error]Template not found: {arg}[/error]")
+            return
+        console.print(f"[bold]{t.name}[/bold] — {t.description}")
+        console.print(f"[dim]Variables needed: {', '.join(t.variables) or 'none'}[/dim]")
+        # Use template with current conversation
+        prompt_text = t.user_prompt
+        if ctx_files:
+            from .file_ops import read_file as _read
+            import os as _os
+            for cf in ctx_files[:3]:
+                full = _os.path.join(cwd, cf) if not _os.path.isabs(cf) else cf
+                content = _read(full)
+                if content:
+                    prompt_text = prompt_text.replace("{code}", f"```\n{content}\n```")
+                    break
+        messages.append({"role": "user", "content": prompt_text})
+        console.print(f"[system]📝 Using prompt template: {t.name}[/system]")
+    elif sub == "save" and arg:
+        # Save current conversation as a prompt template
+        if not messages:
+            console.print("[error]No messages to save as template.[/error]")
+            return
+        last_user = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        template = PromptTemplate(
+            name=arg,
+            category="Custom",
+            description=f"Custom template: {arg}",
+            user_prompt=last_user,
+        )
+        path = save_template(template)
+        console.print(f"[success]💾 Prompt saved: {path}[/success]")
+    else:
+        console.print("""📝 Prompt Library:
+  /prompt list          — List all templates
+  /prompt categories    — List categories
+  /prompt use <name>    — Use a template
+  /prompt save <name>   — Save current message as template""")
+
+
+def cmd_suggest(rest: str, messages, client, console, cwd, ctx_files):
+    """Smart suggestions based on context."""
+    from .autocomplete import suggest_context_actions
+    # Get last user message or use rest as query
+    query = rest.strip()
+    if not query:
+        last_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        query = last_msg
+
+    if not query:
+        console.print("[system]No context to suggest from. Type something first.[/system]")
+        return
+
+    suggestions = suggest_context_actions(query)
+    if not suggestions:
+        console.print("[system]No suggestions available for this context.[/system]")
+        return
+
+    console.print("[bold]💡 Suggestions:[/bold]")
+    for s in suggestions:
+        console.print(f"  [cyan]{s['action']}[/cyan] {s['args']} — {s['description']}")

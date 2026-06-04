@@ -1,3 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /tests/
+Disallow: /termmind/
+Disallow: /docs/assets/
+
 Sitemap: https://rudra496.github.io/termmind/sitemap.xml

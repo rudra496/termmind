@@ -57,6 +57,22 @@ PROVIDER_PRESETS: dict[str, dict[str, Any]] = {
         "cost_per_1k_output": 0.0,
         "requires_key": True,
     },
+    "mistral": {
+        "base_url": "https://api.mistral.ai/v1",
+        "models": ["mistral-large-latest", "mistral-small-latest", "open-mistral-nemo", "codestral-latest", "open-codestral-mamba"],
+        "default_model": "mistral-small-latest",
+        "cost_per_1k_input": 0.0002,
+        "cost_per_1k_output": 0.0006,
+        "requires_key": True,
+    },
+    "cohere": {
+        "base_url": "https://api.cohere.com",
+        "models": ["command-r-plus", "command-r", "command", "command-light"],
+        "default_model": "command-r-plus",
+        "cost_per_1k_input": 0.0025,
+        "cost_per_1k_output": 0.01,
+        "requires_key": True,
+    },
     "ollama": {
         "base_url": "http://localhost:11434/v1",
         "models": ["llama3.2", "codellama", "mistral", "qwen2.5-coder"],

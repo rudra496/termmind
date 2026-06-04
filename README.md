@@ -1,5 +1,5 @@
-<!-- TermMind: AI terminal assistant supporting 7+ LLM providers. Chat with GPT, Claude, Gemini in your terminal with code analysis, file editing, and 40+ commands. -->
-<!-- Keywords: AI terminal assistant, CLI coding tool, GPT terminal, Claude terminal, coding assistant, AI code editor, terminal AI chat, LLM CLI tool -->
+<!-- TermMind: AI terminal assistant supporting 9+ LLM providers. Chat with GPT, Claude, Gemini, Mistral, Cohere in your terminal with security scanning, code generation, and 50+ commands. -->
+<!-- Keywords: AI terminal assistant, CLI coding tool, GPT terminal, Claude terminal, coding assistant, AI code editor, terminal AI chat, LLM CLI tool, security scanner, code generation, Mistral AI, Cohere -->
 
 <p align="center">
   <a href="https://github.com/rudra496/termmind/actions/workflows/ci.yml">
@@ -11,14 +11,14 @@
   </a>
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
-  <img src="https://img.shields.io/badge/7-Providers-9cf.svg" alt="Providers">
+  <img src="https://img.shields.io/badge/9-Providers-9cf.svg" alt="Providers">
 </p>
 
 <h1 align="center">⚡ TermMind</h1>
 
 <p align="center">
   <strong>AI-Powered Terminal Assistant</strong><br>
-  Chat with GPT, Claude, Gemini, and more — directly in your terminal.
+  Chat with GPT, Claude, Gemini, Mistral, and more — directly in your terminal.
 </p>
 
 <p align="center">
@@ -46,7 +46,7 @@ $ termmind chat
 
   ╔═══════════════════════════════════╗
   ║      T e r m M i n d            ║
-  ║   AI Terminal Assistant v1.0.0  ║
+  ║   AI Terminal Assistant v2.0.0  ║
   ╚═══════════════════════════════════╝
 
 Provider: ollama | Model: llama3.2 | Git: detected ✓
@@ -97,6 +97,22 @@ termmind review src/
 
 # Generate tests
 termmind test utils.py --framework pytest
+
+# Security scan (NEW)
+termmind scan src/
+termmind scan api.py --ai    # AI-powered deep review
+
+# Generate code from description (NEW)
+termmind generate api "REST API for blog with auth" -f fastapi
+termmind generate test "user auth module" -o test_auth.py
+
+# Pipe support (NEW)
+cat error.log | termmind pipe
+git diff | termmind ask "Summarize these changes"
+
+# Prompt library (NEW)
+termmind prompts list
+termmind prompts use code-review
 ```
 
 ### Docker
@@ -108,7 +124,11 @@ docker run -it --rm -v $(pwd):/workspace termmind chat
 
 ## ✨ Features
 
-- **7 LLM Providers** — OpenAI, Anthropic (Claude), Gemini, Groq, Together, OpenRouter, Ollama
+- **9 LLM Providers** — OpenAI, Anthropic (Claude), Gemini, Mistral, Cohere, Groq, Together, OpenRouter, Ollama
+- **Security Scanner** — 15+ vulnerability detection rules + AI-powered deep review
+- **AI Code Generation** — Generate APIs, classes, tests, Dockerfiles from natural language
+- **Prompt Library** — 12+ built-in templates for code review, debugging, optimization, and more
+- **Smart Autocomplete** — Context-aware file, command, and action suggestions
 - **Streaming Responses** — Real-time markdown rendering with syntax highlighting
 - **Smart Code Context** — Automatically includes relevant files based on your query
 - **File Editing** — AI-powered edits with diff preview and undo
@@ -116,13 +136,14 @@ docker run -it --rm -v $(pwd):/workspace termmind chat
 - **Test Generation** — Generate pytest/unittest tests for any file
 - **Refactoring Engine** — 8 AI-powered operations (extract function, rename, simplify, etc.)
 - **Git Integration** — Status, diff, commit with AI-generated messages, branch management
-- **Code Index** — Parse 9 languages, query functions/classes, persist across sessions
+- **Code Index** — Parse 10+ languages, query functions/classes, persist across sessions
 - **Session Management** — Save, load, export conversations
 - **Snippet Manager** — Save, search, import/export reusable code blocks
 - **Project Templates** — Scaffold from 8 templates (FastAPI, Flask, Next.js, Django, etc.)
 - **Voice Mode** — Text-to-speech for AI responses (optional)
 - **Cost Tracking** — Token usage, cost estimation, budget alerts, provider comparison
 - **Plugin System** — Extend with custom plugins (TodoTracker, CodeStats, AutoCommit built-in)
+- **Pipe Support** — Process piped stdin with AI
 - **5 Color Themes** — Dark, Light, Solarized, Dracula, Monokai
 - **Shell Completions** — Bash, Zsh, Fish
 - **Session Recording** — Record, replay, and export sessions as HTML
@@ -138,6 +159,8 @@ docker run -it --rm -v $(pwd):/workspace termmind chat
 | **Gemini** | ✅ Free | ❌ | gemini-2.0-flash |
 | **OpenAI** | 💰 Paid | ❌ | gpt-4o-mini |
 | **Anthropic** | 💰 Paid | ❌ | claude-sonnet-4 |
+| **Mistral** | 💰 Paid | ❌ | mistral-small |
+| **Cohere** | 💰 Paid | ❌ | command-r-plus |
 | **Together** | 💰 Paid | ❌ | llama-3-70b |
 | **OpenRouter** | 💰 Varies | ❌ | gpt-4o-mini |
 
@@ -209,6 +232,10 @@ termmind debug <file>  # Debug a file
 termmind refactor <f>  # Refactor a file
 termmind docstring <f> # Add docstrings
 termmind translate <f> # Translate comments
+termmind scan <path>   # Security vulnerability scan (NEW)
+termmind generate <t>  # AI code generation (NEW)
+termmind pipe          # Process piped stdin (NEW)
+termmind prompts list  # Prompt library (NEW)
 termmind init          # Setup wizard
 termmind config        # Show config
 termmind index         # Build code index

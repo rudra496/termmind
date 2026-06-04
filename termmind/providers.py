@@ -385,6 +385,140 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         return ["*"]
 
 
+class MistralProvider(OpenAICompatibleProvider):
+    """Mistral AI API provider (OpenAI-compatible)."""
+
+    name = "mistral"
+    requires_key = True
+    _costs = {
+        "mistral-large-latest": (0.002, 0.006),
+        "mistral-small-latest": (0.0002, 0.0006),
+        "open-mistral-nemo": (0.0, 0.0),
+        "codestral-latest": (0.0003, 0.0009),
+        "open-codestral-mamba": (0.0, 0.0),
+    }
+    _models = list(_costs.keys())
+
+    def __init__(self, **kw: Any):
+        super().__init__(**kw)
+        self.base_url = self.base_url or "https://api.mistral.ai/v1"
+        self.model = self.model or "mistral-small-latest"
+
+    def validate_connection(self, timeout: float = 10.0) -> bool:
+        if not self.api_key:
+            return False
+        try:
+            resp = httpx.get(
+                f"{self.base_url}/models",
+                headers=self._headers(),
+                timeout=timeout,
+            )
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+
+class CohereProvider(BaseProvider):
+    """Cohere API provider (custom endpoint format)."""
+
+    name = "cohere"
+    requires_key = True
+    _costs = {
+        "command-r-plus": (0.0025, 0.01),
+        "command-r": (0.00015, 0.0006),
+        "command": (0.001, 0.002),
+        "command-light": (0.0003, 0.0006),
+    }
+    _models = list(_costs.keys())
+
+    def __init__(self, **kw: Any):
+        super().__init__(**kw)
+        self.base_url = self.base_url or "https://api.cohere.com"
+        self.model = self.model or "command-r-plus"
+
+    def _cohere_headers(self) -> dict[str, str]:
+        return {
+            "Content-Type": "application/json",
+            "User-Agent": USER_AGENT,
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+    def send_message(self, messages: list[dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
+        # Convert to Cohere's chat format
+        system = ""
+        chat_history = []
+        user_message = ""
+        for msg in messages:
+            if msg["role"] == "system":
+                system = msg["content"]
+            elif msg["role"] == "user":
+                user_message = msg["content"]
+            elif msg["role"] == "assistant":
+                chat_history.append({"role": "CHATBOT", "message": msg["content"]})
+
+        body: dict[str, Any] = {
+            "model": self.model,
+            "message": user_message,
+            "max_tokens": kw.get("max_tokens", 4096),
+            "temperature": kw.get("temperature", 0.7),
+            "stream": stream,
+        }
+        if chat_history:
+            body["chat_history"] = chat_history
+        if system:
+            body["preamble"] = system
+
+        url = f"{self.base_url}/v1/chat"
+        headers = self._cohere_headers()
+
+        if not stream:
+            def do_req():
+                return _get_shared_client().post(url, json=body, headers=headers)
+            resp = _retry_request(do_req)
+            if resp.status_code != 200:
+                raise Exception(f"Cohere error {resp.status_code}: {resp.text}")
+            data = resp.json()
+            yield data.get("text", "")
+            return
+
+        body["stream"] = True
+        with httpx.Client(timeout=_TIMEOUT) as client, \
+                client.stream("POST", url, json=body, headers=headers) as resp:
+                if resp.status_code != 200:
+                    raise Exception(f"Cohere error {resp.status_code}: {resp.read().decode()}")
+                for line in resp.iter_lines():
+                    if not line:
+                        continue
+                    try:
+                        parsed = json.loads(line)
+                        if parsed.get("event_type") == "text-generation":
+                            text = parsed.get("text", "")
+                            if text:
+                                yield text
+                    except json.JSONDecodeError:
+                        continue
+
+    def list_models(self) -> list[str]:
+        return list(self._models)
+
+    def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
+        costs = self._costs.get(self.model, (0.001, 0.002))
+        return (input_tokens / 1000 * costs[0]) + (output_tokens / 1000 * costs[1])
+
+    def validate_connection(self, timeout: float = 10.0) -> bool:
+        if not self.api_key:
+            return False
+        try:
+            resp = httpx.get(
+                f"{self.base_url}/v1/models",
+                headers=self._cohere_headers(),
+                timeout=timeout,
+            )
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+
 class OllamaProvider(OpenAICompatibleProvider):
     """Ollama local API provider (OpenAI-compatible endpoint)."""
 
@@ -426,6 +560,8 @@ PROVIDERS: dict[str, type] = {
     "groq": GroqProvider,
     "together": TogetherProvider,
     "openrouter": OpenRouterProvider,
+    "mistral": MistralProvider,
+    "cohere": CohereProvider,
     "ollama": OllamaProvider,
 }
 

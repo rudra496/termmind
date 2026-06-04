@@ -31,8 +31,8 @@ HISTORY_FILE = Path.home() / ".termmind" / "history"
 BANNER = r"""
 [bold cyan]  ╔═══════════════════════════════════╗
   ║      [bold white]T e r m M i n d[/bold white]                ║
-  ║   [dim]AI Terminal Assistant v1.0.0[/dim]       ║
-  ║   [dim]7 Providers • Streaming • Plugins[/dim]    ║
+  ║   [dim]AI Terminal Assistant v2.0.0[/dim]       ║
+  ║   [dim]9 Providers • Security • Generate[/dim]  ║
   ╚═══════════════════════════════════╝[/bold cyan]
 """
 
@@ -53,6 +53,11 @@ SLASH_COMMANDS = [
     "/voice", "/voice on", "/voice off", "/voice speed", "/voice lang",
     "/eli5", "/eli5 mode on", "/eli5 mode off", "/eli5 status",
     "/cost optimize", "/cost history", "/cost budget", "/cost compare", "/cost save",
+    "/scan", "/scan file", "/scan dir", "/scan ai",
+    "/generate", "/generate api", "/generate class", "/generate cli", "/generate test",
+    "/generate docker", "/generate config", "/generate script", "/generate regex",
+    "/prompt", "/prompt list", "/prompt use", "/prompt save", "/prompt categories",
+    "/suggest",
 ]
 
 
@@ -790,3 +795,174 @@ def doctors():
         table.add_row("Provider connection", "[error]❌[/error]", str(e))
 
     console.print(table)
+
+
+@main.command()
+@click.argument("path", default=".")
+@click.option("--provider", "-p", help="Override provider for AI scan")
+@click.option("--model", "-m", help="Override model for AI scan")
+@click.option("--ai", "-a", is_flag=True, help="Use AI for deep security review")
+def scan(path: str, provider: Optional[str], model: Optional[str], ai: bool):
+    """Scan code for security vulnerabilities."""
+    from .security import scan_directory, scan_file, ai_security_review
+    cfg = load_config()
+    console = _get_console()
+    target = str(Path(path).resolve())
+
+    p = Path(target)
+    if ai and p.is_file():
+        content = read_file(target)
+        if content is None:
+            console.print(f"[error]File not found: {path}[/error]")
+            return
+        client = APIClient(
+            provider=provider or cfg.get("provider"),
+            api_key=cfg.get("api_key"),
+            model=model or cfg.get("model"),
+        )
+        console.print(f"[system]🤖 AI security review of {path}...[/system]\n")
+        response = ai_security_review(client, path, content)
+        console.print(Markdown(response))
+        return
+
+    console.print(f"[system]🔍 Scanning {path}...[/system]")
+    if p.is_file():
+        issues = scan_file(target)
+    else:
+        result = scan_directory(target)
+        issues = result.issues
+
+    # Display results
+    from .security import ScanResult
+    if p.is_file():
+        result = ScanResult(files_scanned=1, issues=issues)
+    
+    summary = result.summary()
+    table = Table(title="Security Scan Results", border_style="dim")
+    table.add_column("Metric", style="bold cyan")
+    table.add_column("Value")
+    table.add_row("Files scanned", str(result.files_scanned))
+    table.add_row("Total issues", str(summary.get("total", len(issues))))
+    table.add_row("Critical", f"[red]{summary.get('critical', 0)}[/red]")
+    table.add_row("High", f"[yellow]{summary.get('high', 0)}[/yellow]")
+    table.add_row("Medium", f"[cyan]{summary.get('medium', 0)}[/cyan]")
+    table.add_row("Low", f"[dim]{summary.get('low', 0)}[/dim]")
+    console.print(table)
+
+    if issues:
+        console.print()
+        for issue in issues[:20]:
+            sev_color = {"critical": "red", "high": "yellow", "medium": "cyan", "low": "dim"}.get(issue.severity, "dim")
+            console.print(f"  [{sev_color}][{issue.severity.upper()}][/{sev_color}] {issue.title}")
+            console.print(f"    [file_path]{issue.file}:{issue.line}[/file_path]")
+            console.print(f"    [dim]{issue.code_snippet[:80]}[/dim]")
+            if issue.recommendation:
+                console.print(f"    [green]Fix: {issue.recommendation}[/green]")
+            console.print()
+
+
+@main.command()
+@click.argument("template_type", default="script")
+@click.argument("description", required=False)
+@click.option("--framework", "-f", default="", help="Framework to use")
+@click.option("--output", "-o", default="", help="Output file path")
+@click.option("--provider", "-p", help="Override provider")
+@click.option("--model", "-m", help="Override model")
+def generate(template_type: str, description: Optional[str], framework: str, output: str,
+             provider: Optional[str], model: Optional[str]):
+    """Generate code from a description using AI."""
+    from .codegen import generate_code, generate_and_save, list_template_types
+    cfg = load_config()
+    console = _get_console()
+
+    if not description:
+        console.print("[bold]Available generation templates:[/bold]")
+        for t in list_template_types():
+            console.print(f"  [cyan]•[/cyan] {t}")
+        console.print("\nUsage: [command]termmind generate <type> \"description\" [--framework X] [--output file][/command]")
+        return
+
+    client = APIClient(
+        provider=provider or cfg.get("provider"),
+        api_key=cfg.get("api_key"),
+        model=model or cfg.get("model"),
+    )
+
+    console.print(f"[system]🤖 Generating {template_type} code...[/system]\n")
+
+    if output:
+        response = generate_and_save(client, description, output, template_type, framework)
+        console.print(Markdown(response))
+        console.print(f"\n[success]💾 Saved to: {output}[/success]")
+    else:
+        response = generate_code(client, description, template_type, framework)
+        console.print(Markdown(response))
+
+
+@main.command(name="pipe")
+@click.option("--provider", "-p", help="Override provider")
+@click.option("--model", "-m", help="Override model")
+def pipe_cmd(provider: Optional[str], model: Optional[str]):
+    """Read from stdin and process with AI (pipe support)."""
+    cfg = load_config()
+    console = _get_console()
+
+    if sys.stdin.isatty():
+        console.print("[error]No input piped. Usage: echo 'code' | termmind pipe[/error]")
+        return
+
+    stdin_content = sys.stdin.read()
+    if not stdin_content.strip():
+        console.print("[error]Empty input.[/error]")
+        return
+
+    client = APIClient(
+        provider=provider or cfg.get("provider"),
+        api_key=cfg.get("api_key"),
+        model=model or cfg.get("model"),
+    )
+
+    prompt = f"""Analyze and respond to this input. If it's code, explain it and suggest improvements.
+If it's a question, answer it. If it's a command description, generate the code.
+
+Input:
+```
+{stdin_content}
+```"""
+
+    _stream_response(client, [{"role": "user", "content": prompt}], console)
+
+
+@main.command(name="prompts")
+@click.argument("action", default="list")
+@click.argument("name", required=False)
+def prompts_cmd(action: str, name: Optional[str]):
+    """Manage prompt templates."""
+    from .promptlib import list_templates, get_template, list_categories
+    console = _get_console()
+
+    if action == "list":
+        templates = list_templates()
+        table = Table(title="Prompt Library", border_style="dim")
+        table.add_column("Name", style="cyan")
+        table.add_column("Category")
+        table.add_column("Description")
+        table.add_column("Tags", style="dim")
+        for t in templates:
+            table.add_row(t.name, t.category, t.description, ", ".join(t.tags))
+        console.print(table)
+    elif action == "categories":
+        for cat in list_categories():
+            console.print(f"  [cyan]•[/cyan] {cat}")
+    elif action == "use" and name:
+        t = get_template(name)
+        if not t:
+            console.print(f"[error]Template not found: {name}[/error]")
+            return
+        console.print(f"[bold]{t.name}[/bold] — {t.description}")
+        console.print(f"[dim]Category: {t.category}[/dim]")
+        console.print(f"[dim]Variables: {', '.join(t.variables)}[/dim]")
+        console.print(f"\n[info]System prompt:[/info]\n{t.system_prompt}")
+        console.print(f"\n[info]User prompt:[/info]\n{t.user_prompt}")
+    else:
+        console.print("Usage: termmind prompts [list|categories|use <name>]")

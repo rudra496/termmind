@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "termmind"
-version = "1.0.0"
-description = "AI-powered terminal assistant — 7 LLM providers, streaming, code context, plugins, refactoring, and more"
+version = "2.0.0"
+description = "AI-powered terminal assistant — 9 LLM providers, security scanning, code generation, prompt library, 50+ commands"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
 authors = [{name = "Rudra Sarker", email = "rudra496@users.noreply.github.com"}]
-keywords = ["ai", "cli", "terminal", "llm", "chatbot", "coding", "assistant", "developer-tools", "openai", "anthropic", "gemini", "ollama"]
+keywords = ["ai", "cli", "terminal", "llm", "chatbot", "coding", "assistant", "developer-tools", "openai", "anthropic", "gemini", "ollama", "mistral", "cohere", "security-scanner", "code-generation"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -48,8 +48,9 @@ dev = [
 termmind = "termmind.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/rudra496/termmind"
+Homepage = "https://rudra496.github.io/termmind/"
 Repository = "https://github.com/rudra496/termmind"
+Documentation = "https://rudra496.github.io/termmind/"
 Issues = "https://github.com/rudra496/termmind/issues"
 Changelog = "https://github.com/rudra496/termmind/releases"
 
