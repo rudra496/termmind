@@ -1,6 +1,6 @@
 """Code generator — generate code from natural language descriptions."""
 
-from typing import Any, Optional
+from typing import Any
 
 from .file_ops import write_file
 

@@ -905,7 +905,7 @@ def cmd_cost(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_scan(rest: str, messages, client, console, cwd, ctx_files):
     """Security scanner."""
-    from .security import scan_directory, scan_file, ScanResult
+    from .security import ScanResult, scan_directory, scan_file
     parts = rest.strip().split(maxsplit=1)
     sub = parts[0] if parts else ""
     target = parts[1] if len(parts) > 1 else cwd
@@ -913,8 +913,9 @@ def cmd_scan(rest: str, messages, client, console, cwd, ctx_files):
     if sub == "ai":
         # AI-powered security review
         target_path = target if target != cwd else "."
-        from .file_ops import read_file as _read
         import os as _os
+
+        from .file_ops import read_file as _read
         full_path = _os.path.join(cwd, target_path) if not _os.path.isabs(target_path) else target_path
         content = _read(full_path)
         if content is None:
@@ -989,7 +990,13 @@ def cmd_generate(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_prompt(rest: str, messages, client, console, cwd, ctx_files):
     """Prompt library management."""
-    from .promptlib import list_templates, get_template, list_categories, save_template, PromptTemplate
+    from .promptlib import (
+        PromptTemplate,
+        get_template,
+        list_categories,
+        list_templates,
+        save_template,
+    )
     parts = rest.strip().split(maxsplit=1)
     sub = parts[0] if parts else ""
     arg = parts[1] if len(parts) > 1 else ""
@@ -1016,8 +1023,9 @@ def cmd_prompt(rest: str, messages, client, console, cwd, ctx_files):
         # Use template with current conversation
         prompt_text = t.user_prompt
         if ctx_files:
-            from .file_ops import read_file as _read
             import os as _os
+
+            from .file_ops import read_file as _read
             for cf in ctx_files[:3]:
                 full = _os.path.join(cwd, cf) if not _os.path.isabs(cf) else cf
                 content = _read(full)

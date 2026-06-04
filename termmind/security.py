@@ -208,10 +208,7 @@ _SECURITY_RULES: list[dict[str, Any]] = [
 def _should_exclude(rule: dict, filepath: str) -> bool:
     """Check if file should be excluded based on rule's exclude_files."""
     excludes = rule.get("exclude_files", [])
-    for exc in excludes:
-        if exc in filepath:
-            return True
-    return False
+    return any(exc in filepath for exc in excludes)
 
 
 def scan_file(filepath: str, content: Optional[str] = None) -> list[SecurityIssue]:

@@ -3,8 +3,6 @@
 import os
 import re
 from pathlib import Path
-from typing import Any, Optional
-
 
 # Common coding patterns for intelligent suggestions
 _CODE_PATTERNS: dict[str, list[str]] = {
@@ -134,45 +132,40 @@ def suggest_context_actions(message: str) -> list[dict[str, str]]:
         message, re.IGNORECASE
     )
 
-    if any(kw in msg_lower for kw in ["review", "check", "audit", "analyze"]):
-        if file_mentions:
-            suggestions.append({
-                "action": "/review",
-                "args": file_mentions[0],
-                "description": f"Review {file_mentions[0]}",
-            })
+    if any(kw in msg_lower for kw in ["review", "check", "audit", "analyze"]) and file_mentions:
+        suggestions.append({
+            "action": "/review",
+            "args": file_mentions[0],
+            "description": f"Review {file_mentions[0]}",
+        })
 
-    if any(kw in msg_lower for kw in ["test", "tests", "testing", "unittest", "pytest"]):
-        if file_mentions:
-            suggestions.append({
-                "action": "/test",
-                "args": file_mentions[0],
-                "description": f"Generate tests for {file_mentions[0]}",
-            })
+    if any(kw in msg_lower for kw in ["test", "tests", "testing", "unittest", "pytest"]) and file_mentions:
+        suggestions.append({
+            "action": "/test",
+            "args": file_mentions[0],
+            "description": f"Generate tests for {file_mentions[0]}",
+        })
 
-    if any(kw in msg_lower for kw in ["explain", "what does", "how does", "understand"]):
-        if file_mentions:
-            suggestions.append({
-                "action": "/explain",
-                "args": file_mentions[0],
-                "description": f"Explain {file_mentions[0]}",
-            })
+    if any(kw in msg_lower for kw in ["explain", "what does", "how does", "understand"]) and file_mentions:
+        suggestions.append({
+            "action": "/explain",
+            "args": file_mentions[0],
+            "description": f"Explain {file_mentions[0]}",
+        })
 
-    if any(kw in msg_lower for kw in ["edit", "modify", "change", "update", "fix", "refactor"]):
-        if file_mentions:
-            suggestions.append({
-                "action": "/edit",
-                "args": f"{file_mentions[0]} {message}",
-                "description": f"Edit {file_mentions[0]}",
-            })
+    if any(kw in msg_lower for kw in ["edit", "modify", "change", "update", "fix", "refactor"]) and file_mentions:
+        suggestions.append({
+            "action": "/edit",
+            "args": f"{file_mentions[0]} {message}",
+            "description": f"Edit {file_mentions[0]}",
+        })
 
-    if any(kw in msg_lower for kw in ["debug", "error", "bug", "broken", "failing"]):
-        if file_mentions:
-            suggestions.append({
-                "action": "/debug",
-                "args": file_mentions[0],
-                "description": f"Debug {file_mentions[0]}",
-            })
+    if any(kw in msg_lower for kw in ["debug", "error", "bug", "broken", "failing"]) and file_mentions:
+        suggestions.append({
+            "action": "/debug",
+            "args": file_mentions[0],
+            "description": f"Debug {file_mentions[0]}",
+        })
 
     if any(kw in msg_lower for kw in ["security", "vuln", "vulnerability", "insecure"]):
         suggestions.append({

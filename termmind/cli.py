@@ -804,7 +804,7 @@ def doctors():
 @click.option("--ai", "-a", is_flag=True, help="Use AI for deep security review")
 def scan(path: str, provider: Optional[str], model: Optional[str], ai: bool):
     """Scan code for security vulnerabilities."""
-    from .security import scan_directory, scan_file, ai_security_review
+    from .security import ai_security_review, scan_directory, scan_file
     cfg = load_config()
     console = _get_console()
     target = str(Path(path).resolve())
@@ -836,7 +836,7 @@ def scan(path: str, provider: Optional[str], model: Optional[str], ai: bool):
     from .security import ScanResult
     if p.is_file():
         result = ScanResult(files_scanned=1, issues=issues)
-    
+
     summary = result.summary()
     table = Table(title="Security Scan Results", border_style="dim")
     table.add_column("Metric", style="bold cyan")
@@ -871,7 +871,7 @@ def scan(path: str, provider: Optional[str], model: Optional[str], ai: bool):
 def generate(template_type: str, description: Optional[str], framework: str, output: str,
              provider: Optional[str], model: Optional[str]):
     """Generate code from a description using AI."""
-    from .codegen import generate_code, generate_and_save, list_template_types
+    from .codegen import generate_and_save, generate_code, list_template_types
     cfg = load_config()
     console = _get_console()
 
@@ -938,7 +938,7 @@ Input:
 @click.argument("name", required=False)
 def prompts_cmd(action: str, name: Optional[str]):
     """Manage prompt templates."""
-    from .promptlib import list_templates, get_template, list_categories
+    from .promptlib import get_template, list_categories, list_templates
     console = _get_console()
 
     if action == "list":
