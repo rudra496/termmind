@@ -12,6 +12,21 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
   <img src="https://img.shields.io/badge/9-Providers-9cf.svg" alt="Providers">
+  <a href="https://github.com/rudra496/termmind/stargazers">
+    <img src="https://img.shields.io/github/stars/rudra496/termmind?style=social" alt="Stars">
+  </a>
+  <a href="https://github.com/rudra496/termmind/issues">
+    <img src="https://img.shields.io/github/issues/rudra496/termmind" alt="Issues">
+  </a>
+  <a href="https://github.com/rudra496/termmind/commits">
+    <img src="https://img.shields.io/github/last-commit/rudra496/termmind" alt="Last Commit">
+  </a>
+  <a href="https://github.com/rudra496/termmind">
+    <img src="https://img.shields.io/github/repo-size/rudra496/termmind" alt="Repo Size">
+  </a>
+  <a href="https://pypi.org/project/termmind/">
+    <img src="https://img.shields.io/pypi/dm/termmind?color=blue&label=Downloads" alt="Downloads">
+  </a>
 </p>
 
 <h1 align="center">⚡ TermMind</h1>
@@ -30,7 +45,11 @@
   <a href="#-features">Features</a> •
   <a href="#-providers">Providers</a> •
   <a href="#-commands">Commands</a> •
-  <a href="#-architecture">Architecture</a>
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-configuration">Configuration</a> •
+  <a href="#-contributing">Contributing</a> •
+  <a href="#-documentation">Documentation</a> •
+  <a href="#-license">License</a>
 </p>
 
 ---
@@ -301,6 +320,16 @@ MIT License — see [LICENSE](LICENSE) for details.
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=rudra496/termmind&type=Date" />
  </picture>
 </a>
+
+---
+
+## 🔗 Connect
+
+- [![GitHub](https://img.shields.io/badge/GitHub-rudra496-181717?logo=github)](https://github.com/rudra496)
+- [![LinkedIn](https://img.shields.io/badge/LinkedIn-rudrasarker-0A66C2?logo=linkedin)](https://www.linkedin.com/in/rudrasarker)
+- [![X/Twitter](https://img.shields.io/badge/X-@Rudra496-000000?logo=x)](https://x.com/Rudra496)
+- [![YouTube](https://img.shields.io/badge/YouTube-@rudrasarker9732-FF0000?logo=youtube)](https://youtube.com/@rudrasarker9732)
+- [![Dev.to](https://img.shields.io/badge/Dev.to-rudra__sarker-000000?logo=devdotto)](https://dev.to/rudra_sarker)
 
 ---
 

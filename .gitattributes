@@ -1,0 +1,22 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Explicitly declare text files
+*.py text
+*.md text
+*.toml text
+*.yml text
+*.yaml text
+*.json text
+*.txt text
+*.cfg text
+*.ini text
+*.svg text
+Dockerfile text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
