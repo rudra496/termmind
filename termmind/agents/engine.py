@@ -1,8 +1,8 @@
 """Multi-agent orchestration system."""
 
-from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Optional
 
 from termmind.api import APIClient
 
@@ -13,37 +13,37 @@ class AgentPersona:
     name: str
     role: str
     system_prompt: str
-    capabilities: List[str] = field(default_factory=list)
+    capabilities: list[str] = field(default_factory=list)
     max_turns: int = 10
 
 
 class Agent:
     """Single agent instance."""
-    
+
     def __init__(self, persona: AgentPersona, client: APIClient) -> None:
         self.persona = persona
         self.client = client
-        self.state: Dict[str, Any] = {}
-        self.memory: List[Dict[str, str]] = []
+        self.state: dict[str, Any] = {}
+        self.memory: list[dict[str, str]] = []
         self.turns = 0
-    
-    def run(self, task: str, context: Optional[Dict[str, Any]] = None) -> str:
+
+    def run(self, task: str, context: Optional[dict[str, Any]] = None) -> str:
         """Execute a task with this agent."""
         if self.turns >= self.persona.max_turns:
             return f"[{self.persona.name}] Max turns reached."
-        
+
         messages = [
             {"role": "system", "content": self.persona.system_prompt},
         ]
-        
+
         if context:
             ctx_str = "\n".join([f"{k}: {v}" for k, v in context.items()])
             messages.append({"role": "user", "content": f"Context:\n{ctx_str}\n\nTask: {task}"})
         else:
             messages.append({"role": "user", "content": task})
-        
+
         self.turns += 1
-        
+
         # Use the client's chat method
         try:
             response = self.client.chat(messages)
@@ -51,15 +51,15 @@ class Agent:
             return response
         except Exception as e:
             return f"[{self.persona.name}] Error: {e}"
-    
+
     def remember(self, key: str, value: Any) -> None:
         """Store something in agent memory."""
         self.state[key] = value
-    
+
     def recall(self, key: str) -> Any:
         """Recall from agent memory."""
         return self.state.get(key)
-    
+
     def reset(self) -> None:
         """Reset agent state."""
         self.turns = 0
@@ -69,52 +69,52 @@ class Agent:
 
 class WorkflowEngine:
     """Orchestrates multi-agent workflows."""
-    
+
     def __init__(self) -> None:
-        self._agents: Dict[str, Agent] = {}
-        self._workflows: Dict[str, List[str]] = {}
-    
+        self._agents: dict[str, Agent] = {}
+        self._workflows: dict[str, list[str]] = {}
+
     def register_agent(self, agent: Agent) -> None:
         """Register an agent."""
         self._agents[agent.persona.name] = agent
-    
-    def define_workflow(self, name: str, steps: List[str]) -> None:
+
+    def define_workflow(self, name: str, steps: list[str]) -> None:
         """Define a workflow as a sequence of agent names."""
         self._workflows[name] = steps
-    
-    def run_workflow(self, name: str, task: str, **kwargs: Any) -> Dict[str, Any]:
+
+    def run_workflow(self, name: str, task: str, **kwargs: Any) -> dict[str, Any]:
         """Run a defined workflow."""
         if name not in self._workflows:
             raise ValueError(f"Workflow {name} not defined")
-        
+
         steps = self._workflows[name]
         results = {}
         context = {}
-        
+
         for step_name in steps:
             agent = self._agents.get(step_name)
             if not agent:
                 raise ValueError(f"Agent {step_name} not found")
-            
+
             result = agent.run(task, context=context)
             results[step_name] = result
             context[f"{step_name}_output"] = result
-        
+
         return {
             "workflow": name,
             "task": task,
             "results": results,
             "final_output": results.get(steps[-1], "")
         }
-    
-    def list_agents(self) -> List[str]:
+
+    def list_agents(self) -> list[str]:
         """List all registered agents."""
         return list(self._agents.keys())
-    
-    def list_workflows(self) -> List[str]:
+
+    def list_workflows(self) -> list[str]:
         """List all defined workflows."""
         return list(self._workflows.keys())
-    
+
     def save_state(self, path: str) -> None:
         """Save workflow state to JSON."""
         import json
@@ -123,7 +123,7 @@ class WorkflowEngine:
             "workflows": self._workflows,
         }
         Path(path).write_text(json.dumps(state, indent=2))
-    
+
     def load_state(self, path: str) -> None:
         """Load workflow state from JSON."""
         import json

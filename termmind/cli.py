@@ -19,12 +19,14 @@ from rich.markdown import Markdown
 from rich.table import Table
 
 from . import __version__
+from .agents.cli import agent_cmd
 from .api import APIClient, APIError
 from .commands import handle_command
 from .config import PROVIDER_PRESETS, load_config, save_config
 from .context import build_context
 from .file_ops import build_file_tree, find_files, read_file, write_file
 from .git import git_is_repo
+from .knowledge.cli import kb_cmd
 from .themes import get_theme
 
 HISTORY_FILE = Path.home() / ".termmind" / "history"
@@ -968,9 +970,6 @@ def prompts_cmd(action: str, name: Optional[str]):
         console.print("Usage: termmind prompts [list|categories|use <name>]")
 
 
-# Register new v3.0 commands
-from .agents.cli import agent_cmd
-from .knowledge.cli import kb_cmd
 
 main.add_command(agent_cmd)
 main.add_command(kb_cmd)
