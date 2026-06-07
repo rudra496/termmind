@@ -2,6 +2,24 @@
 
 All notable changes to TermMind are documented in this file.
 
+## [3.0.0] - 2026-06-07
+
+### Added
+- **Multi-Agent System** — Orchestrate 5 built-in personas (Researcher, Coder, Reviewer, Writer, Architect)
+- **Workflow Engine** — Define and run multi-agent workflows with state persistence
+- **Knowledge Base with RAG** — Vector store, document loader, chunking, and RAG pipeline
+- **Event Bus** — Pub/sub event system for decoupled communication
+- **LRU Cache** — Caching layer with TTL support for performance
+- **Middleware Chain** — Interceptor pattern for request/response processing
+- **Custom Exception Hierarchy** — 10 structured exception classes
+- **Agent CLI Commands** — `agent list`, `agent run`, `agent chat`
+- **Knowledge Base CLI Commands** — `kb init`, `kb add`, `kb query`, `kb list`, `kb stats`
+- **Comprehensive Tests** — 49+ new tests for all v3.0 modules
+
+### Changed
+- Version bumped to 3.0.0
+- README updated with v3.0 features and commands
+
 ## [2.0.0] - 2026-06-05
 
 ### Added

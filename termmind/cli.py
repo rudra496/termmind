@@ -966,3 +966,11 @@ def prompts_cmd(action: str, name: Optional[str]):
         console.print(f"\n[info]User prompt:[/info]\n{t.user_prompt}")
     else:
         console.print("Usage: termmind prompts [list|categories|use <name>]")
+
+
+# Register new v3.0 commands
+from .agents.cli import agent_cmd
+from .knowledge.cli import kb_cmd
+
+main.add_command(agent_cmd)
+main.add_command(kb_cmd)

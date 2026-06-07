@@ -169,6 +169,18 @@ docker run -it --rm -v $(pwd):/workspace termmind chat
 - **ELI5 Mode** — Simplified explanations for any topic
 - **Multi-line Input** — Shift+Enter for newlines
 
+### 🚀 What's New in v3.0
+
+- **Multi-Agent System** — Orchestrate Researcher, Coder, Reviewer, Writer, Architect agents working together
+- **Knowledge Base with RAG** — Vector storage, document ingestion, semantic search, and retrieval-augmented generation
+- **Event-Driven Architecture** — Pub/sub event bus for decoupled communication
+- **Caching Layer** — LRU cache with TTL for chat responses and expensive operations
+- **Middleware Chain** — Interceptor pattern for request/response processing
+- **Custom Exception Hierarchy** — Structured error handling with specific exception types
+- **Agent CLI Commands** — `termmind agent run`, `termmind agent chat`, `termmind agent list`
+- **Knowledge Base CLI Commands** — `termmind kb add`, `termmind kb query`, `termmind kb init`, `termmind kb stats`
+- **Workflow State Persistence** — Save and load multi-agent workflow states as JSON
+
 ## 🌐 Providers
 
 | Provider | Free Tier | Local | Default Model |
@@ -261,6 +273,18 @@ termmind index         # Build code index
 termmind symbols       # List symbols
 termmind doctors       # Health check
 termmind completions   # Shell completions
+
+# v3.0 — Multi-Agent Commands
+termmind agent list                    # List available agent personas
+termmind agent run "research-code" "Build a REST API"   # Run multi-agent workflow
+termmind agent chat researcher "Explain quantum computing"  # Chat with specific persona
+
+# v3.0 — Knowledge Base Commands
+termmind kb init                       # Initialize knowledge base
+termmind kb add ./docs --recursive     # Add documents to KB
+termmind kb query "What is RAG?"      # Query with RAG
+termmind kb list                       # List KB documents
+termmind kb stats                      # Show KB statistics
 ```
 
 ## 🏗 Architecture
