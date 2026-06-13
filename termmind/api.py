@@ -172,3 +172,36 @@ class APIClient:
 
     def total_tokens(self) -> int:
         return self.usage["prompt_tokens"] + self.usage["completion_tokens"]
+
+    def embed(self, text: str) -> list[float]:
+        """Generate vector embedding for a given text using the provider's /embeddings endpoint."""
+        url = f"{self.base_url}/embeddings"
+        headers = self._headers()
+        
+        # Determine the model to use for embeddings based on provider
+        model = self.model
+        if self.provider == "openai":
+            model = "text-embedding-3-small"
+        elif self.provider == "gemini":
+            model = "text-embedding-004"
+        elif self.provider == "together":
+            model = "togethercomputer/mxbai-embed-large-v1"
+        elif self.provider == "cohere":
+            model = "embed-english-v3.0"
+            
+        body = {
+            "model": model,
+            "input": text
+        }
+        
+        try:
+            resp = _get_shared_client().post(url, json=body, headers=headers, timeout=10.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                if "data" in data and len(data["data"]) > 0:
+                    embedding = data["data"][0].get("embedding")
+                    if embedding:
+                        return [float(x) for x in embedding]
+        except Exception:
+            pass
+        return []

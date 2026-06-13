@@ -48,9 +48,9 @@
         "applicationCategory": "DeveloperApplication",
         "applicationSubCategory": "AI Assistant",
         "operatingSystem": "Windows, macOS, Linux",
-        "softwareVersion": "2.0.0",
+        "softwareVersion": "3.1.0",
         "datePublished": "2025-01-15",
-        "dateModified": "2026-06-05",
+        "dateModified": "2026-06-13",
         "offers": {
             "@type": "Offer",
             "price": "0",
@@ -317,7 +317,7 @@
         <a href="#commands">Commands</a>
         <a href="#faq">FAQ</a>
         <a href="https://github.com/rudra496/termmind" class="btn btn-outline" style="padding: 8px 16px; font-size: 0.85rem;">GitHub</a>
-        <span class="nav-badge">v2.0.0</span>
+        <span class="nav-badge">v3.1.0</span>
     </div>
 </nav>
 
@@ -353,6 +353,30 @@
             <p>From AI chat to security scanning, code generation to prompt management — TermMind is your all-in-one terminal AI toolkit.</p>
         </div>
         <div class="grid">
+            <div class="card fade-in">
+                <div class="card-icon">&#x1F4BB;</div>
+                <h3>Local Web UI Console</h3>
+                <p>Launch a premium browser-based workspace dashboard with <code>termmind webui</code>. Chat, manage active context files, and execute CLI commands visually in real time.</p>
+                <span class="card-tag" style="background:rgba(6,182,212,0.15); color:var(--cyan);">New in v3.1</span>
+            </div>
+            <div class="card fade-in">
+                <div class="card-icon">&#x1F9E0;</div>
+                <h3>Multi-Agent System</h3>
+                <p>Orchestrate specialized AI personas (Researcher, Coder, Reviewer, Writer, Architect) working together to solve complex software engineering workflows.</p>
+                <span class="card-tag" style="background:rgba(6,182,212,0.15); color:var(--cyan);">New in v3.1</span>
+            </div>
+            <div class="card fade-in">
+                <div class="card-icon">&#x1F4DA;</div>
+                <h3>Semantic RAG Knowledge Base</h3>
+                <p>Index documents and code repositories. Search and retrieve relevant snippets semantically using high-fidelity cosine-similarity vector embeddings.</p>
+                <span class="card-tag" style="background:rgba(6,182,212,0.15); color:var(--cyan);">New in v3.1</span>
+            </div>
+            <div class="card fade-in">
+                <div class="card-icon">&#x26A1;</div>
+                <h3>Event-Driven & Cache Layer</h3>
+                <p>Sub-100ms response lookup speed using an LRU cache with TTL, decoupled communication via a pub/sub event bus, and request middleware interceptor chains.</p>
+                <span class="card-tag" style="background:rgba(6,182,212,0.15); color:var(--cyan);">New in v3.1</span>
+            </div>
             <div class="card fade-in">
                 <div class="card-icon">&#x1F4AC;</div>
                 <h3>Multi-Provider AI Chat</h3>
@@ -533,7 +557,17 @@
 
 <span class="comment"># Prompt library</span>
 <span class="prompt">$</span> termmind prompts list
-<span class="prompt">$</span> termmind prompts use code-review</pre>
+<span class="prompt">$</span> termmind prompts use code-review
+
+<span class="comment"># Launch local browser-based workspace UI (NEW)</span>
+<span class="prompt">$</span> termmind webui
+
+<span class="comment"># Multi-agent workflows (NEW)</span>
+<span class="prompt">$</span> termmind agent run "research-code" "Build a REST API"
+
+<span class="comment"># Knowledge base & RAG (NEW)</span>
+<span class="prompt">$</span> termmind kb add ./docs --recursive
+<span class="prompt">$</span> termmind kb query "How is security configured?"</pre>
         </div>
 
         <!-- Comparison Table -->
@@ -551,6 +585,9 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <tr><td>Multi-Agent System</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="cross">&#10007;</td><td class="cross">&#10007;</td></tr>
+                        <tr><td>Semantic RAG Knowledge Base</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="cross">&#10007;</td><td class="cross">&#10007;</td></tr>
+                        <tr><td>Local Web UI Console</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="cross">&#10007;</td><td class="cross">&#10007;</td></tr>
                         <tr><td>Free & Open Source</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="cross">&#10007;</td></tr>
                         <tr><td>Multiple Providers (9+)</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="cross">OpenAI only</td><td class="cross">GPT only</td></tr>
                         <tr><td>Security Scanner</td><td class="check">&#10003;</td><td class="cross">&#10007;</td><td class="cross">&#10007;</td><td class="cross">&#10007;</td></tr>
@@ -666,7 +703,7 @@
         <a href="https://github.com/rudra496/termmind/issues">Issues</a>
         <a href="https://github.com/rudra496/termmind/blob/main/SECURITY.md">Security</a>
     </div>
-    <p><strong>TermMind</strong> — AI Terminal Assistant — MIT License — v2.0.0<br>
+    <p><strong>TermMind</strong> — AI Terminal Assistant — MIT License — v3.1.0<br>
     Built by <a href="https://github.com/rudra496">Rudra Sarker</a></p>
     <p style="margin-top: 8px; font-size: 0.8rem;">AI terminal assistant, CLI AI tool, GPT terminal, Claude terminal, Gemini terminal, coding assistant, security scanner, code generation</p>
 </footer>

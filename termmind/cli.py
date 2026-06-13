@@ -971,5 +971,15 @@ def prompts_cmd(action: str, name: Optional[str]):
 
 
 
+@main.command(name="webui")
+@click.option("--port", "-p", default=8080, type=int, help="Port to run the Web UI on")
+@click.option("--no-browser", is_flag=True, help="Disable auto-opening the browser")
+def webui_cmd(port: int, no_browser: bool):
+    """Start the local Web UI console dashboard."""
+    from .webui import start_webui
+    open_browser = not no_browser
+    start_webui(port=port, open_browser=open_browser)
+
+
 main.add_command(agent_cmd)
 main.add_command(kb_cmd)

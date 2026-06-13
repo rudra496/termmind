@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "termmind"
-version = "3.0.0"
+version = "3.1.0"
 description = "AI-powered terminal assistant — 9 LLM providers, security scanning, code generation, prompt library, 50+ commands"
 readme = "README.md"
 license = {text = "MIT"}

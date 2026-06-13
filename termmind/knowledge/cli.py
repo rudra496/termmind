@@ -56,8 +56,15 @@ def kb_add(path, collection, recursive, pattern):
         console.print(f"[red]Invalid path: {path}[/red]")
         return
 
+    cfg = load_config()
+    client = APIClient(
+        provider=cfg.get("provider", "ollama"),
+        api_key=cfg.get("api_key", ""),
+        model=cfg.get("model", ""),
+    )
+
     for i, doc in enumerate(docs):
-        store.add(f"doc_{store.count() + i}", doc)
+        store.add(f"doc_{store.count() + i}", doc, embed_fn=client.embed)
 
     store.save(str(store_path))
     console.print(f"[green]Added {len(docs)} documents to '{collection}'.[/green]")
