@@ -18,7 +18,7 @@ BUILTIN_TEMPLATES: dict[str, dict[str, Any]] = {
     "python-package": {
         "description": "Modern Python package with pyproject.toml, tests, and CI",
         "files": {
-            "pyproject.toml": '''[build-system]
+            "pyproject.toml": """[build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
@@ -62,8 +62,8 @@ target-version = "py38"
 python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
-''',
-            "README.md": '''# {{project_name}}
+""",
+            "README.md": """# {{project_name}}
 
 {{description}}
 
@@ -100,7 +100,7 @@ mypy .
 ## License
 
 MIT
-''',
+""",
             "src/{{module_name}}/__init__.py": '''"""{{description}}."""
 
 __version__ = "0.1.0"
@@ -158,7 +158,7 @@ htmlcov/
 .env
 *.so
 """,
-            "Makefile": '''.PHONY: install test lint format clean
+            "Makefile": """.PHONY: install test lint format clean
 
 install:
 \tpip install -e ".[dev]"
@@ -175,10 +175,10 @@ format:
 
 clean:
 \trm -rf build dist *.egg-info .mypy_cache .pytest_cache .ruff_cache htmlcov .coverage
-''',
+""",
         },
         "post_instructions": [
-            "Run `pip install -e \".[dev]\"` to install in development mode.",
+            'Run `pip install -e ".[dev]"` to install in development mode.',
             "Run `pytest` to verify tests pass.",
             "Start coding in `src/{{module_name}}/`!",
         ],
@@ -186,7 +186,7 @@ clean:
     "fastapi-api": {
         "description": "FastAPI REST API with auth, DB, and Docker",
         "files": {
-            "pyproject.toml": '''[build-system]
+            "pyproject.toml": """[build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
@@ -209,7 +209,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0", "pytest-asyncio", "httpx"]
-''',
+""",
             "app/__init__.py": "",
             "app/main.py": '''"""FastAPI application entry point."""
 
@@ -314,7 +314,7 @@ async def create_item(title: str, description: str = "", db: Session = Depends(g
     db.refresh(item)
     return item
 ''',
-            "Dockerfile": '''FROM python:3.12-slim
+            "Dockerfile": """FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -325,8 +325,8 @@ COPY . .
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-''',
-            "docker-compose.yml": '''version: "3.9"
+""",
+            "docker-compose.yml": """version: "3.9"
 
 services:
   api:
@@ -337,7 +337,7 @@ services:
       - DATABASE_URL=sqlite:///./app.db
     volumes:
       - ./app.db:/app/app.db
-''',
+""",
             ".gitignore": """__pycache__/
 *.py[cod]
 *.egg-info/
@@ -347,7 +347,7 @@ services:
 """,
         },
         "post_instructions": [
-            "Run `pip install -e \".[dev]\"` to install dependencies.",
+            'Run `pip install -e ".[dev]"` to install dependencies.',
             "Start the server: `uvicorn app.main:app --reload`.",
             "API docs at http://localhost:8000/docs",
             "Run with Docker: `docker compose up`",
@@ -431,7 +431,7 @@ instance/
     "cli-tool": {
         "description": "Python CLI tool with click",
         "files": {
-            "pyproject.toml": '''[build-system]
+            "pyproject.toml": """[build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
@@ -447,7 +447,7 @@ dependencies = ["click>=8.1", "rich>=13.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0", "pytest-cov"]
-''',
+""",
             "src/{{module_name}}/__init__.py": '''"""{{description}}."""
 __version__ = "0.1.0"
 ''',
@@ -500,7 +500,7 @@ dist/
 """,
         },
         "post_instructions": [
-            "Install: `pip install -e \".[dev]\"`",
+            'Install: `pip install -e ".[dev]"`',
             "Run: `{{project_name}} hello`",
             "Test: `pytest`",
         ],
@@ -508,7 +508,7 @@ dist/
     "react-app": {
         "description": "React + TypeScript + Vite",
         "files": {
-            "package.json": '''{
+            "package.json": """{
   "name": "{{project_name}}",
   "version": "0.1.0",
   "private": true,
@@ -532,8 +532,8 @@ dist/
     "eslint": "^8.55.0"
   }
 }
-''',
-            "tsconfig.json": '''{
+""",
+            "tsconfig.json": """{
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -553,15 +553,15 @@ dist/
   },
   "include": ["src"]
 }
-''',
-            "vite.config.ts": '''import { defineConfig } from "vite"
+""",
+            "vite.config.ts": """import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 
 export default defineConfig({
   plugins: [react()],
 })
-''',
-            "index.html": '''<!DOCTYPE html>
+""",
+            "index.html": """<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -573,8 +573,8 @@ export default defineConfig({
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-''',
-            "src/main.tsx": '''import React from "react"
+""",
+            "src/main.tsx": """import React from "react"
 import ReactDOM from "react-dom/client"
 import App from "./App"
 
@@ -583,8 +583,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <App />
   </React.StrictMode>,
 )
-''',
-            "src/App.tsx": '''import { useState } from "react"
+""",
+            "src/App.tsx": """import { useState } from "react"
 
 function App() {
   const [count, setCount] = useState(0)
@@ -600,9 +600,9 @@ function App() {
 }
 
 export default App
-''',
-            "src/vite-env.d.ts": '''/// <reference types="vite/client" />
-''',
+""",
+            "src/vite-env.d.ts": """/// <reference types="vite/client" />
+""",
             ".gitignore": """node_modules/
 dist/
 .env
@@ -618,7 +618,7 @@ dist/
     "nextjs-app": {
         "description": "Next.js with App Router",
         "files": {
-            "package.json": '''{
+            "package.json": """{
   "name": "{{project_name}}",
   "version": "0.1.0",
   "private": true,
@@ -641,8 +641,8 @@ dist/
     "eslint-config-next": "14.0.0"
   }
 }
-''',
-            "tsconfig.json": '''{
+""",
+            "tsconfig.json": """{
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -663,12 +663,12 @@ dist/
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }
-''',
-            "next.config.js": '''/** @type {import('next').NextConfig} */
+""",
+            "next.config.js": """/** @type {import('next').NextConfig} */
 const nextConfig = {}
 module.exports = nextConfig
-''',
-            "src/app/layout.tsx": '''export const metadata = {
+""",
+            "src/app/layout.tsx": """export const metadata = {
   title: "{{project_name}}",
   description: "{{description}}",
 }
@@ -680,8 +680,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   )
 }
-''',
-            "src/app/page.tsx": '''export default function Home() {
+""",
+            "src/app/page.tsx": """export default function Home() {
   return (
     <main style={{ padding: "2rem", fontFamily: "system-ui" }}>
       <h1>Welcome to {{project_name}}</h1>
@@ -689,7 +689,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </main>
   )
 }
-''',
+""",
             ".gitignore": """node_modules/
 .next/
 out/
@@ -705,7 +705,7 @@ out/
     "express-api": {
         "description": "Express.js REST API",
         "files": {
-            "package.json": '''{
+            "package.json": """{
   "name": "{{project_name}}",
   "version": "0.1.0",
   "scripts": {
@@ -718,8 +718,8 @@ out/
     "dotenv": "^16.3.0"
   }
 }
-''',
-            "src/index.js": '''import express from "express"
+""",
+            "src/index.js": """import express from "express"
 import cors from "cors"
 import dotenv from "dotenv"
 
@@ -764,7 +764,7 @@ app.delete("/api/items/:id", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
 })
-''',
+""",
             ".gitignore": """node_modules/
 .env
 """,
@@ -932,7 +932,7 @@ static/
 
 def _resolve_name(project_name: str) -> str:
     """Convert project name to a valid Python module name."""
-    return re.sub(r'[^a-z0-9]', '_', project_name.lower()).strip('_') or "myproject"
+    return re.sub(r"[^a-z0-9]", "_", project_name.lower()).strip("_") or "myproject"
 
 
 def _expand_template_vars(content: str, variables: dict[str, str]) -> str:
@@ -952,13 +952,16 @@ def list_templates() -> list[dict[str, str]]:
     for path in sorted(CUSTOM_TEMPLATES_DIR.glob("*.json")):
         try:
             import json
+
             data = json.loads(path.read_text())
             if isinstance(data, dict) and "files" in data:
-                templates.append({
-                    "name": path.stem,
-                    "description": data.get("description", "Custom template"),
-                    "source": "custom",
-                })
+                templates.append(
+                    {
+                        "name": path.stem,
+                        "description": data.get("description", "Custom template"),
+                        "source": "custom",
+                    }
+                )
         except Exception:
             continue
     return templates
@@ -1012,7 +1015,9 @@ def use_template(
         file_path.write_text(expanded_content)
         file_count += 1
 
-    instructions = [_expand_template_vars(inst, variables) for inst in tmpl.get("post_instructions", [])]
+    instructions = [
+        _expand_template_vars(inst, variables) for inst in tmpl.get("post_instructions", [])
+    ]
     return file_count, instructions
 
 

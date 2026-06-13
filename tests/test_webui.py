@@ -3,9 +3,9 @@
 import socket
 import threading
 import time
-import httpx
-import pytest
 from socketserver import ThreadingTCPServer
+
+import httpx
 
 from termmind.webui import WebUIRequestHandler
 
@@ -26,7 +26,7 @@ def test_webui_server_and_endpoints():
     # Start local test server on background thread
     ThreadingTCPServer.allow_reuse_address = True
     server = ThreadingTCPServer(("127.0.0.1", port), WebUIRequestHandler)
-    
+
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 
@@ -55,18 +55,13 @@ def test_webui_server_and_endpoints():
         assert agents[0]["name"] == "researcher"
 
         # 4. Test POST /api/config
-        config_payload = {
-            "provider": "ollama",
-            "temperature": 0.4
-        }
+        config_payload = {"provider": "ollama", "temperature": 0.4}
         resp = httpx.post(f"http://127.0.0.1:{port}/api/config", json=config_payload, timeout=5.0)
         assert resp.status_code == 200
         assert resp.json()["status"] == "success"
 
         # 5. Test POST /api/command
-        cmd_payload = {
-            "command": "/help"
-        }
+        cmd_payload = {"command": "/help"}
         resp = httpx.post(f"http://127.0.0.1:{port}/api/command", json=cmd_payload, timeout=5.0)
         assert resp.status_code == 200
         assert "output" in resp.json()

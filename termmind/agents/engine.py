@@ -10,6 +10,7 @@ from termmind.api import APIClient
 @dataclass
 class AgentPersona:
     """Agent persona definition."""
+
     name: str
     role: str
     system_prompt: str
@@ -104,7 +105,7 @@ class WorkflowEngine:
             "workflow": name,
             "task": task,
             "results": results,
-            "final_output": results.get(steps[-1], "")
+            "final_output": results.get(steps[-1], ""),
         }
 
     def list_agents(self) -> list[str]:
@@ -118,6 +119,7 @@ class WorkflowEngine:
     def save_state(self, path: str) -> None:
         """Save workflow state to JSON."""
         import json
+
         state = {
             "agents": [a.persona.name for a in self._agents.values()],
             "workflows": self._workflows,
@@ -127,6 +129,7 @@ class WorkflowEngine:
     def load_state(self, path: str) -> None:
         """Load workflow state from JSON."""
         import json
+
         data = json.loads(Path(path).read_text())
         self._workflows = data.get("workflows", {})
 
@@ -136,38 +139,44 @@ RESEARCHER = AgentPersona(
     name="researcher",
     role="Information gathering and analysis",
     system_prompt="You are a research agent. Gather information, summarize findings, and provide structured analysis.",
-    capabilities=["web_search", "summarization", "analysis"]
+    capabilities=["web_search", "summarization", "analysis"],
 )
 
 CODER = AgentPersona(
     name="coder",
     role="Code implementation",
     system_prompt="You are a coding agent. Write clean, efficient, well-documented code. Follow best practices.",
-    capabilities=["code_generation", "debugging", "refactoring", "testing"]
+    capabilities=["code_generation", "debugging", "refactoring", "testing"],
 )
 
 REVIEWER = AgentPersona(
     name="reviewer",
     role="Quality assurance",
     system_prompt="You are a code review agent. Identify bugs, security issues, performance problems, and suggest improvements.",
-    capabilities=["code_review", "security_audit", "performance_analysis"]
+    capabilities=["code_review", "security_audit", "performance_analysis"],
 )
 
 WRITER = AgentPersona(
     name="writer",
     role="Documentation",
     system_prompt="You are a technical writing agent. Create clear, comprehensive documentation.",
-    capabilities=["documentation", "comments", "README_generation"]
+    capabilities=["documentation", "comments", "README_generation"],
 )
 
 ARCHITECT = AgentPersona(
     name="architect",
     role="System design",
     system_prompt="You are a system architect. Design scalable, maintainable systems.",
-    capabilities=["architecture", "patterns", "diagrams"]
+    capabilities=["architecture", "patterns", "diagrams"],
 )
 
 __all__ = [
-    "Agent", "AgentPersona", "WorkflowEngine",
-    "RESEARCHER", "CODER", "REVIEWER", "WRITER", "ARCHITECT"
+    "Agent",
+    "AgentPersona",
+    "WorkflowEngine",
+    "RESEARCHER",
+    "CODER",
+    "REVIEWER",
+    "WRITER",
+    "ARCHITECT",
 ]

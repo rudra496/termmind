@@ -1,11 +1,8 @@
 """Unit tests for knowledge base embeddings and cosine similarity search."""
 
-import pytest
 from termmind.knowledge.rag import (
     Document,
     VectorStore,
-    dot_product,
-    magnitude,
     cosine_similarity,
 )
 
@@ -66,7 +63,7 @@ def test_vector_store_search_fallback():
 
     # doc1 has no embedding, doc2 has embedding
     doc1 = Document("Python coding assistant", {"source": "python.txt"})
-    
+
     doc2 = Document("Terminal chat application", {"source": "terminal.txt"})
     doc2.embedding = [0.0, 1.0, 0.0]
 

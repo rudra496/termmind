@@ -56,20 +56,46 @@ def handle_command(
     rest = parts[1] if len(parts) > 1 else ""
 
     handlers: dict[str, Callable] = {
-        "help": cmd_help, "edit": cmd_edit, "run": cmd_run, "files": cmd_files,
-        "add": cmd_add, "remove": cmd_remove, "clear": cmd_clear, "save": cmd_save,
-        "load": cmd_load, "sessions": cmd_sessions, "model": cmd_model,
-        "models": cmd_models, "provider": cmd_provider, "providers": cmd_providers,
-        "cost": cmd_cost, "theme": cmd_theme, "themes": cmd_themes,
-        "undo": cmd_undo, "diff": cmd_diff, "status": cmd_status,
-        "git": cmd_git, "search": cmd_search, "grep": cmd_grep, "tree": cmd_tree,
-        "export": cmd_export, "compact": cmd_compact, "system": cmd_system,
-        "version": cmd_version, "quit": cmd_quit, "q": cmd_quit,
+        "help": cmd_help,
+        "edit": cmd_edit,
+        "run": cmd_run,
+        "files": cmd_files,
+        "add": cmd_add,
+        "remove": cmd_remove,
+        "clear": cmd_clear,
+        "save": cmd_save,
+        "load": cmd_load,
+        "sessions": cmd_sessions,
+        "model": cmd_model,
+        "models": cmd_models,
+        "provider": cmd_provider,
+        "providers": cmd_providers,
+        "cost": cmd_cost,
+        "theme": cmd_theme,
+        "themes": cmd_themes,
+        "undo": cmd_undo,
+        "diff": cmd_diff,
+        "status": cmd_status,
+        "git": cmd_git,
+        "search": cmd_search,
+        "grep": cmd_grep,
+        "tree": cmd_tree,
+        "export": cmd_export,
+        "compact": cmd_compact,
+        "system": cmd_system,
+        "version": cmd_version,
+        "quit": cmd_quit,
+        "q": cmd_quit,
         "exit": cmd_quit,
-        "index": cmd_index, "symbols": cmd_symbols, "capabilities": cmd_capabilities,
-        "snippet": cmd_snippet, "snippets": cmd_snippet,
-        "template": cmd_template, "templates": cmd_template,
-        "refactor": cmd_refactor, "refactoring": cmd_refactor,
+        "index": cmd_index,
+        "symbols": cmd_symbols,
+        "capabilities": cmd_capabilities,
+        "snippet": cmd_snippet,
+        "snippets": cmd_snippet,
+        "template": cmd_template,
+        "templates": cmd_template,
+        "refactor": cmd_refactor,
+        "refactoring": cmd_refactor,
         "record": cmd_record,
         "voice": cmd_voice,
         "eli5": cmd_eli5,
@@ -159,7 +185,7 @@ def cmd_help(rest: str, messages, client, console, cwd, ctx_files):
         ("/scan [path]", "Scan for security issues", False),
         ("/scan ai <file>", "AI deep security review", False),
         ("Code Generation", "", True),
-        ("/generate <type> \"desc\"", "Generate code from description", False),
+        ('/generate <type> "desc"', "Generate code from description", False),
         ("/generate", "List available templates", False),
         ("Prompt Library", "", True),
         ("/prompt list", "List prompt templates", False),
@@ -213,7 +239,9 @@ Apply the edit. If making changes, output ONLY the complete new file content ins
             write_file(full_path, new_content)
             console.print(f"[success]✅ File updated: {filepath}[/success]")
         else:
-            console.print("[warning]⚠ No replacement block found. Edit not applied automatically.[/warning]")
+            console.print(
+                "[warning]⚠ No replacement block found. Edit not applied automatically.[/warning]"
+            )
     except Exception as e:
         console.print(f"[error]Edit failed: {e}[/error]")
 
@@ -232,9 +260,11 @@ def cmd_run(rest: str, messages, client, console, cwd, ctx_files):
             except ValueError:
                 pass
     import subprocess
+
     console.print(f"[command]$ {rest}[/command]")
     try:
         import shlex
+
         parsed = shlex.split(rest)
         result = subprocess.run(parsed, capture_output=True, text=True, cwd=cwd, timeout=timeout)
         if result.stdout:
@@ -246,7 +276,12 @@ def cmd_run(rest: str, messages, client, console, cwd, ctx_files):
         output = result.stdout + result.stderr
         if output.strip():
             messages.append({"role": "user", "content": f"[Ran: {rest}]\nOutput:\n{output[:2000]}"})
-            messages.append({"role": "assistant", "content": f"Command completed with exit code {result.returncode}."})
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": f"Command completed with exit code {result.returncode}.",
+                }
+            )
     except subprocess.TimeoutExpired:
         console.print(f"[error]Command timed out ({timeout}s)[/error]")
     except Exception as e:
@@ -305,8 +340,15 @@ def cmd_clear(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_save(rest: str, messages, client, console, cwd, ctx_files):
     name = rest or datetime.now().strftime("%Y-%m-%d_%H-%M")
-    save_session(name, messages, client.provider, client.model, client.get_cost(),
-                 client.total_tokens(), ctx_files)
+    save_session(
+        name,
+        messages,
+        client.provider,
+        client.model,
+        client.get_cost(),
+        client.total_tokens(),
+        ctx_files,
+    )
     console.print(f"[success]💾 Session saved: {name}[/success]")
 
 
@@ -323,7 +365,9 @@ def cmd_load(rest: str, messages, client, console, cwd, ctx_files):
         table.add_column("Msgs")
         table.add_column("Saved")
         for s in sessions[:15]:
-            table.add_row(s["name"], s["provider"], s["model"], str(s["messages"]), s["saved_at"][:16])
+            table.add_row(
+                s["name"], s["provider"], s["model"], str(s["messages"]), s["saved_at"][:16]
+            )
         console.print(table)
         return
     session = load_session(rest)
@@ -350,8 +394,14 @@ def cmd_sessions(rest: str, messages, client, console, cwd, ctx_files):
     table.add_column("Tokens")
     table.add_column("Saved")
     for s in sessions[:15]:
-        table.add_row(s["name"], s["provider"], s["model"], str(s["messages"]),
-                      f"{s['tokens']:,}", s["saved_at"][:16])
+        table.add_row(
+            s["name"],
+            s["provider"],
+            s["model"],
+            str(s["messages"]),
+            f"{s['tokens']:,}",
+            s["saved_at"][:16],
+        )
     console.print(table)
 
 
@@ -391,7 +441,9 @@ def cmd_provider(rest: str, messages, client, console, cwd, ctx_files):
         console.print(f"[info]Current provider: {client.provider}[/info]")
         return
     if rest not in PROVIDER_PRESETS:
-        console.print(f"[error]Unknown provider: {rest}. Available: {list(PROVIDER_PRESETS.keys())}[/error]")
+        console.print(
+            f"[error]Unknown provider: {rest}. Available: {list(PROVIDER_PRESETS.keys())}[/error]"
+        )
         return
     client.provider = rest
     info = PROVIDER_PRESETS[rest]
@@ -414,7 +466,15 @@ def cmd_providers(rest: str, messages, client, console, cwd, ctx_files):
     for name, info in PROVIDER_PRESETS.items():
         marker = " ← current" if name == client.provider else ""
         needs_key = "Yes" if info["requires_key"] else "No"
-        has_key = "✅" if (not info["requires_key"] or load_config().get("providers", {}).get(name, {}).get("api_key") or (name == load_config().get("provider") and load_config().get("api_key"))) else "⚠ No key"
+        has_key = (
+            "✅"
+            if (
+                not info["requires_key"]
+                or load_config().get("providers", {}).get(name, {}).get("api_key")
+                or (name == load_config().get("provider") and load_config().get("api_key"))
+            )
+            else "⚠ No key"
+        )
         table.add_row(f"{name}{marker}", info["default_model"], needs_key, has_key)
     console.print(table)
 
@@ -455,6 +515,7 @@ def cmd_undo(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_diff(rest: str, messages, client, console, cwd, ctx_files):
     from .diff_engine import compute_diff_from_disk, render_diff_inline
+
     if rest:
         p = os.path.join(cwd, rest) if not os.path.isabs(rest) else rest
         content = read_file(p)
@@ -469,14 +530,23 @@ def cmd_diff(rest: str, messages, client, console, cwd, ctx_files):
                 fd.old_content = old_content
                 fd.hunks = []
                 import difflib
-                diff_text = "".join(difflib.unified_diff(
-                    old_content.splitlines(keepends=True),
-                    content.splitlines(keepends=True),
-                    fromfile=f"a/{rest}", tofile=f"b/{rest}",
-                ))
+
+                diff_text = "".join(
+                    difflib.unified_diff(
+                        old_content.splitlines(keepends=True),
+                        content.splitlines(keepends=True),
+                        fromfile=f"a/{rest}",
+                        tofile=f"b/{rest}",
+                    )
+                )
                 from .diff_engine import _parse_unified_diff
+
                 fd.hunks = _parse_unified_diff(diff_text)
-                fd.edit_type = fd.edit_type if fd.edit_type.value != "identical" else __import__("termmind.diff_engine", fromlist=["EditType"]).EditType.REPLACE
+                fd.edit_type = (
+                    fd.edit_type
+                    if fd.edit_type.value != "identical"
+                    else __import__("termmind.diff_engine", fromlist=["EditType"]).EditType.REPLACE
+                )
                 render_diff_inline(fd, console)
                 return
         console.print("[system]No changes recorded for this file.[/system]")
@@ -486,6 +556,7 @@ def cmd_diff(rest: str, messages, client, console, cwd, ctx_files):
         console.print("[system]No changes this session.[/system]")
         return
     from .diff_engine import MultiFileDiff, compute_file_diff, render_diff_inline
+
     multi = MultiFileDiff()
     for filepath, _diff in diffs:
         multi.files.append(compute_file_diff("", "", filepath, filepath))
@@ -508,6 +579,7 @@ def cmd_status(rest: str, messages, client, console, cwd, ctx_files):
         remote = ""
         try:
             from .git import git_get_remote_url
+
             remote = git_get_remote_url(cwd)
         except Exception:
             pass
@@ -516,7 +588,7 @@ def cmd_status(rest: str, messages, client, console, cwd, ctx_files):
     table.add_row("Provider", client.provider)
     table.add_row("Model", client.model)
     table.add_row("Context files", str(len(ctx_files)))
-    table.add_row("Messages", str(len([m for m in messages if m['role'] == 'user'])))
+    table.add_row("Messages", str(len([m for m in messages if m["role"] == "user"])))
     table.add_row("Tokens", f"{client.total_tokens():,}")
     table.add_row("Cost", f"${client.get_cost():.6f}")
     table.add_row("CWD", cwd)
@@ -549,6 +621,7 @@ def cmd_git(rest: str, messages, client, console, cwd, ctx_files):
             console.print("[system]Nothing to commit.[/system]")
             return
         from .git import ai_commit_message
+
         console.print("[system]🤖 Generating commit message...[/system]")
         try:
             commit_msg = ai_commit_message(client, diff_text)
@@ -637,7 +710,10 @@ def cmd_compact(rest: str, messages, client, console, cwd, ctx_files):
     if system_msgs and messages[0]["role"] == "system":
         summary = {"role": "system", "content": messages[0]["content"]}
     else:
-        summary = {"role": "system", "content": "[Previous conversation was compacted to save context space.]"}
+        summary = {
+            "role": "system",
+            "content": "[Previous conversation was compacted to save context space.]",
+        }
     # Keep last 4 messages (2 exchanges)
     tail = messages[-4:] if len(messages) >= 4 else messages[-2:]
     # Summarize middle
@@ -649,7 +725,9 @@ def cmd_compact(rest: str, messages, client, console, cwd, ctx_files):
     messages.append(summary)
     messages.extend(tail)
     removed = middle_count
-    console.print(f"[success]🔄 Compacted conversation: removed {removed} messages, kept {len(tail)}[/success]")
+    console.print(
+        f"[success]🔄 Compacted conversation: removed {removed} messages, kept {len(tail)}[/success]"
+    )
 
 
 def cmd_system(rest: str, messages, client, console, cwd, ctx_files):
@@ -667,6 +745,7 @@ def cmd_index(rest: str, messages, client, console, cwd, ctx_files):
     import time
 
     from .memory import build_index, get_project_summary
+
     force = "--force" in rest or "-f" in rest
     console.print("[system]Building code index...[/system]")
     start = time.time()
@@ -686,6 +765,7 @@ def cmd_index(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_symbols(rest: str, messages, client, console, cwd, ctx_files):
     from .memory import query_classes, query_functions
+
     parts = rest.strip().split(maxsplit=1)
     pattern = parts[0] if parts else ""
     table = Table(title="Symbols", border_style="dim")
@@ -702,6 +782,7 @@ def cmd_symbols(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_capabilities(rest: str, messages, client, console, cwd, ctx_files):
     from .shell import get_capability_report
+
     report = get_capability_report()
     table = Table(title="Terminal Capabilities", border_style="dim")
     table.add_column("Capability", style="bold cyan")
@@ -727,8 +808,9 @@ def cmd_quit(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_eli5(rest: str, messages, client, console, cwd, ctx_files):
     """Explain Like I'm 5 mode."""
-    if not hasattr(cmd_eli5, 'eli5'):
+    if not hasattr(cmd_eli5, "eli5"):
         from .eli5 import ELI5Mode
+
         cmd_eli5.eli5 = ELI5Mode()
     if rest.strip() == "mode on":
         cmd_eli5.eli5.enable()
@@ -753,8 +835,9 @@ def cmd_eli5(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_voice(rest: str, messages, client, console, cwd, ctx_files):
     """Voice mode controls."""
-    if not hasattr(cmd_voice, 'voice'):
+    if not hasattr(cmd_voice, "voice"):
         from .voice import VoiceMode
+
         cmd_voice.voice = VoiceMode()
     if rest.strip() == "on":
         cmd_voice.voice.enable()
@@ -779,8 +862,9 @@ def cmd_voice(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_record(rest: str, messages, client, console, cwd, ctx_files):
     """Session recording controls."""
-    if not hasattr(cmd_record, 'recorder'):
+    if not hasattr(cmd_record, "recorder"):
         from .recorder import SessionRecorder
+
         cmd_record.recorder = SessionRecorder()
     if rest.strip() == "start":
         cmd_record.recorder.start()
@@ -794,6 +878,7 @@ def cmd_record(rest: str, messages, client, console, cwd, ctx_files):
             console.print("No recordings found")
         else:
             from rich.table import Table
+
             table = Table(title="Recordings")
             table.add_column("Name", style="cyan")
             table.add_column("Date")
@@ -815,7 +900,9 @@ def cmd_record(rest: str, messages, client, console, cwd, ctx_files):
             console.print(f"▶️ Replaying {name} (speed: {speed}x)...")
             events = cmd_record.recorder.replay(name, speed)
             for event in events:
-                console.print(f"  [{event['time']}] {event['type']}: {event.get('summary', '')[:80]}")
+                console.print(
+                    f"  [{event['time']}] {event['type']}: {event.get('summary', '')[:80]}"
+                )
         else:
             console.print("Usage: /record replay <name> [--speed 2x]")
     elif rest.strip().startswith("export"):
@@ -837,14 +924,16 @@ def cmd_record(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_cost(rest: str, messages, client, console, cwd, ctx_files):
     """Cost tracking and optimization."""
-    if not hasattr(cmd_cost, 'optimizer'):
+    if not hasattr(cmd_cost, "optimizer"):
         from .cost_optimizer import CostOptimizer
+
         cmd_cost.optimizer = CostOptimizer()
     if rest.strip() == "analyze" or rest.strip() == "":
         console.print(cmd_cost.optimizer.get_analysis_text())
     elif rest.strip() == "history":
         daily = cmd_cost.optimizer.get_daily_history(30)
         from rich.table import Table
+
         table = Table(title="Cost History (30 days)")
         table.add_column("Date", style="cyan")
         table.add_column("Cost", style="green")
@@ -859,7 +948,9 @@ def cmd_cost(rest: str, messages, client, console, cwd, ctx_files):
         except ValueError:
             budget = cmd_cost.optimizer.get_budget_status()
             if budget:
-                console.print(f"Budget: ${budget['spent']:.2f} / ${budget['budget']:.2f} ({budget['percent']:.0f}%)")
+                console.print(
+                    f"Budget: ${budget['spent']:.2f} / ${budget['budget']:.2f} ({budget['percent']:.0f}%)"
+                )
             else:
                 console.print("No budget set. Usage: /cost budget <amount>")
     elif rest.strip() == "optimize":
@@ -867,14 +958,19 @@ def cmd_cost(rest: str, messages, client, console, cwd, ctx_files):
         console.print(f"\n📊 Context: ~{result['current_context_tokens']:,} tokens")
         console.print(f"💰 Estimated cost: ${result['estimated_request_cost']:.6f}")
         if result["suggestions"]:
-            console.print(f"\n💡 Savings: ~{result['total_potential_savings_tokens']:,} tokens possible")
+            console.print(
+                f"\n💡 Savings: ~{result['total_potential_savings_tokens']:,} tokens possible"
+            )
             from rich.table import Table
+
             table = Table(title="Optimization Suggestions")
             table.add_column("Type")
             table.add_column("Description")
             table.add_column("Savings", style="green")
             for s in result["suggestions"]:
-                table.add_row(s["type"], s["description"], f"~{s['estimated_savings_tokens']:,} tokens")
+                table.add_row(
+                    s["type"], s["description"], f"~{s['estimated_savings_tokens']:,} tokens"
+                )
             console.print(table)
         else:
             console.print("[green]Context looks good, no optimizations needed![/green]")
@@ -882,6 +978,7 @@ def cmd_cost(rest: str, messages, client, console, cwd, ctx_files):
         tokens = cmd_cost.optimizer.get_token_stats()
         comparisons = cmd_cost.optimizer.compare_providers(tokens["input"], tokens["output"])
         from rich.table import Table
+
         table = Table(title="Provider Cost Comparison")
         table.add_column("Provider", style="cyan")
         table.add_column("Model")
@@ -906,6 +1003,7 @@ def cmd_cost(rest: str, messages, client, console, cwd, ctx_files):
 def cmd_scan(rest: str, messages, client, console, cwd, ctx_files):
     """Security scanner."""
     from .security import ScanResult, scan_directory, scan_file
+
     parts = rest.strip().split(maxsplit=1)
     sub = parts[0] if parts else ""
     target = parts[1] if len(parts) > 1 else cwd
@@ -916,22 +1014,29 @@ def cmd_scan(rest: str, messages, client, console, cwd, ctx_files):
         import os as _os
 
         from .file_ops import read_file as _read
-        full_path = _os.path.join(cwd, target_path) if not _os.path.isabs(target_path) else target_path
+
+        full_path = (
+            _os.path.join(cwd, target_path) if not _os.path.isabs(target_path) else target_path
+        )
         content = _read(full_path)
         if content is None:
             console.print(f"[error]File not found: {target_path}[/error]")
             return
         from .security import ai_security_review
+
         console.print(f"[system]🤖 AI security review of {target_path}...[/system]\n")
         response = ai_security_review(client, target_path, content)
         from rich.markdown import Markdown
+
         console.print(Markdown(response))
         return
 
     console.print(f"[system]🔍 Scanning {target}...[/system]")
     import os as _os
+
     full_path = _os.path.join(cwd, target) if not _os.path.isabs(target) else target
     from pathlib import Path as _Path
+
     p = _Path(full_path)
 
     if p.is_file():
@@ -942,6 +1047,7 @@ def cmd_scan(rest: str, messages, client, console, cwd, ctx_files):
 
     summary = result.summary()
     from rich.table import Table as _Table
+
     table = _Table(title="Security Scan Results", border_style="dim")
     table.add_column("Metric", style="bold cyan")
     table.add_column("Value")
@@ -956,7 +1062,9 @@ def cmd_scan(rest: str, messages, client, console, cwd, ctx_files):
     if result.issues:
         console.print()
         for issue in result.issues[:15]:
-            sev_color = {"critical": "red", "high": "yellow", "medium": "cyan", "low": "dim"}.get(issue.severity, "dim")
+            sev_color = {"critical": "red", "high": "yellow", "medium": "cyan", "low": "dim"}.get(
+                issue.severity, "dim"
+            )
             console.print(f"  [{sev_color}][{issue.severity.upper()}][/{sev_color}] {issue.title}")
             console.print(f"    [file_path]{issue.file}:{issue.line}[/file_path]")
             if issue.recommendation:
@@ -967,11 +1075,12 @@ def cmd_scan(rest: str, messages, client, console, cwd, ctx_files):
 def cmd_generate(rest: str, messages, client, console, cwd, ctx_files):
     """Code generation from description."""
     from .codegen import generate_code, list_template_types
+
     if not rest.strip():
         console.print("[bold]Available generation templates:[/bold]")
         for t in list_template_types():
             console.print(f"  [cyan]•[/cyan] {t}")
-        console.print("\nUsage: [command]/generate <type> \"description\"[/command]")
+        console.print('\nUsage: [command]/generate <type> "description"[/command]')
         return
 
     parts = rest.strip().split(maxsplit=1)
@@ -979,12 +1088,13 @@ def cmd_generate(rest: str, messages, client, console, cwd, ctx_files):
     description = parts[1] if len(parts) > 1 else ""
 
     if not description:
-        console.print("[error]Usage: /generate <type> \"description\"[/error]")
+        console.print('[error]Usage: /generate <type> "description"[/error]')
         return
 
     console.print(f"[system]🤖 Generating {template_type} code...[/system]\n")
     response = generate_code(client, description, template_type)
     from rich.markdown import Markdown
+
     console.print(Markdown(response))
 
 
@@ -997,6 +1107,7 @@ def cmd_prompt(rest: str, messages, client, console, cwd, ctx_files):
         list_templates,
         save_template,
     )
+
     parts = rest.strip().split(maxsplit=1)
     sub = parts[0] if parts else ""
     arg = parts[1] if len(parts) > 1 else ""
@@ -1026,6 +1137,7 @@ def cmd_prompt(rest: str, messages, client, console, cwd, ctx_files):
             import os as _os
 
             from .file_ops import read_file as _read
+
             for cf in ctx_files[:3]:
                 full = _os.path.join(cwd, cf) if not _os.path.isabs(cf) else cf
                 content = _read(full)
@@ -1059,6 +1171,7 @@ def cmd_prompt(rest: str, messages, client, console, cwd, ctx_files):
 def cmd_suggest(rest: str, messages, client, console, cwd, ctx_files):
     """Smart suggestions based on context."""
     from .autocomplete import suggest_context_actions
+
     # Get last user message or use rest as query
     query = rest.strip()
     if not query:

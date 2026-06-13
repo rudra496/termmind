@@ -1,20 +1,20 @@
 """Lightweight, zero-dependency Web UI server for TermMind."""
 
+import contextlib
 import json
 import os
-import sys
 import urllib.parse
 import webbrowser
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from socketserver import ThreadingTCPServer
-from typing import Any, Optional
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
+from socketserver import ThreadingTCPServer
+from typing import Any
 
 from rich.console import Console
 
 from termmind.api import APIClient
 from termmind.commands import handle_command
-from termmind.config import load_config, save_config, PROVIDER_PRESETS
+from termmind.config import PROVIDER_PRESETS, load_config, save_config
 from termmind.knowledge.rag import VectorStore
 
 # In-memory session data for the Web UI
@@ -687,10 +687,10 @@ HTML_CONTENT = """<!DOCTYPE html>
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            
+
             document.getElementById(tabId).classList.add('active');
             el.classList.add('active');
-            
+
             if (tabId === 'tab-terminal') {
                 document.getElementById('terminal-command').focus();
             } else {
@@ -703,24 +703,24 @@ HTML_CONTENT = """<!DOCTYPE html>
             try {
                 const res = await fetch('/api/status');
                 const data = await res.json();
-                
+
                 providerPresets = data.presets || {};
                 activeProvider = data.config.provider || "ollama";
                 activeModel = data.config.model || "";
-                
+
                 // Update UI elements
                 document.getElementById('badge-cost').innerText = '$' + data.cost.toFixed(4);
                 document.getElementById('badge-tokens').innerText = data.tokens;
                 document.getElementById('badge-workspace').innerText = data.workspace;
-                
+
                 // Set form control values
                 document.getElementById('select-provider').value = activeProvider;
                 document.getElementById('slider-temp').value = data.config.temperature || 0.7;
                 document.getElementById('val-temp').innerText = data.config.temperature || 0.7;
-                
+
                 populateModelDropdown();
                 document.getElementById('select-model').value = activeModel;
-                
+
                 // Update files in context
                 const filesList = document.getElementById('active-files-list');
                 filesList.innerHTML = '';
@@ -728,13 +728,13 @@ HTML_CONTENT = """<!DOCTYPE html>
                     data.context_files.forEach(f => {
                         const item = document.createElement('div');
                         item.className = 'file-item';
-                        
+
                         const display_name = f.split('/').pop().split('\\\\').pop();
-                        
+
                         const nameSpan = document.createElement('span');
                         nameSpan.innerText = display_name;
                         item.appendChild(nameSpan);
-                        
+
                         const delSpan = document.createElement('span');
                         delSpan.innerHTML = '&times;';
                         delSpan.style.cursor = 'pointer';
@@ -743,7 +743,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                         delSpan.style.fontSize = '1.1rem';
                         delSpan.onclick = () => removeFileFromContext(f);
                         item.appendChild(delSpan);
-                        
+
                         item.title = f;
                         filesList.appendChild(item);
                     });
@@ -760,7 +760,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             const provider = document.getElementById('select-provider').value;
             const modelDropdown = document.getElementById('select-model');
             modelDropdown.innerHTML = '';
-            
+
             const preset = providerPresets[provider];
             if (preset && preset.models) {
                 preset.models.forEach(model => {
@@ -783,7 +783,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             const provider = document.getElementById('select-provider').value;
             const model = document.getElementById('select-model').value;
             const temperature = parseFloat(document.getElementById('slider-temp').value);
-            
+
             try {
                 await fetch('/api/config', {
                     method: 'POST',
@@ -801,7 +801,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             try {
                 const res = await fetch('/api/agents');
                 const agents = await res.json();
-                
+
                 const container = document.getElementById('agents-container');
                 container.innerHTML = '';
                 agents.forEach(agent => {
@@ -872,17 +872,17 @@ HTML_CONTENT = """<!DOCTYPE html>
             const textarea = document.getElementById('chat-prompt');
             const prompt = textarea.value.trim();
             if (!prompt) return;
-            
+
             textarea.value = '';
-            
+
             // Render user bubble
             appendChatBubble(prompt, 'user');
-            
+
             // Show loader
             const loader = document.getElementById('chat-loader');
             loader.classList.remove('hidden');
             scrollToBottom('chat-scroller');
-            
+
             try {
                 const res = await fetch('/api/chat', {
                     method: 'POST',
@@ -890,15 +890,15 @@ HTML_CONTENT = """<!DOCTYPE html>
                     body: JSON.stringify({ prompt })
                 });
                 const data = await res.json();
-                
+
                 loader.classList.add('hidden');
-                
+
                 if (data.error) {
                     appendChatBubble('Error: ' + data.error, 'assistant');
                 } else {
                     appendChatBubble(data.content, 'assistant');
                 }
-                
+
                 fetchStatus();
             } catch (err) {
                 loader.classList.add('hidden');
@@ -911,27 +911,27 @@ HTML_CONTENT = """<!DOCTYPE html>
             const scroller = document.getElementById('chat-scroller');
             const bubble = document.createElement('div');
             bubble.className = `message-bubble ${sender}`;
-            
+
             // Basic markdown-like parser (fenced code, bold, inline code)
             let formatted = text
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;");
-                
+
             // Code blocks
             formatted = formatted.replace(/```(\\w*)\\n([\\s\\S]*?)```/g, (match, lang, code) => {
                 return `<pre><code class="language-${lang}">${code.trim()}</code></pre>`;
             });
-            
+
             // Inline code
             formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
-            
+
             // Bold
             formatted = formatted.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>');
-            
+
             // Newlines
             formatted = formatted.replace(/\\n/g, '<br>');
-            
+
             bubble.innerHTML = formatted;
             scroller.appendChild(bubble);
             scrollToBottom('chat-scroller');
@@ -955,13 +955,13 @@ HTML_CONTENT = """<!DOCTYPE html>
             const input = document.getElementById('terminal-command');
             const command = input.value.trim();
             if (!command) return;
-            
+
             input.value = '';
-            
+
             const scroller = document.getElementById('terminal-scroller');
             scroller.innerHTML += `<br><span class="terminal-prompt">termmind $</span> ${command}<br><span style="color:var(--text-muted)">Running command...</span><br>`;
             scrollToBottom('terminal-scroller');
-            
+
             try {
                 const res = await fetch('/api/command', {
                     method: 'POST',
@@ -969,12 +969,12 @@ HTML_CONTENT = """<!DOCTYPE html>
                     body: JSON.stringify({ command })
                 });
                 const data = await res.json();
-                
+
                 // Clean output (ansi stripping or rendering)
                 let output = data.output;
                 // Basic ANSI escapes strip
                 output = output.replace(/\\x1B\\[[0-9;]*[a-zA-Z]/g, '');
-                
+
                 scroller.innerHTML += `<div>${output}</div>`;
                 scrollToBottom('terminal-scroller');
                 fetchStatus();
@@ -995,11 +995,11 @@ HTML_CONTENT = """<!DOCTYPE html>
                     files.forEach(f => {
                         const item = document.createElement('div');
                         item.className = 'file-item';
-                        
+
                         const nameSpan = document.createElement('span');
                         nameSpan.innerText = f;
                         item.appendChild(nameSpan);
-                        
+
                         const addSpan = document.createElement('span');
                         addSpan.innerHTML = '+';
                         addSpan.style.cursor = 'pointer';
@@ -1008,7 +1008,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                         addSpan.style.fontSize = '1.1rem';
                         addSpan.onclick = () => addFile(f);
                         item.appendChild(addSpan);
-                        
+
                         item.title = f;
                         container.appendChild(item);
                     });
@@ -1055,12 +1055,12 @@ HTML_CONTENT = """<!DOCTYPE html>
             const path = input.value.trim();
             if (!path) return;
             input.value = '';
-            
+
             // Show status in terminal
             const scroller = document.getElementById('terminal-scroller');
             scroller.innerHTML += `<br><span class="terminal-prompt">termmind $</span> kb add ${path} --recursive<br><span style="color:var(--text-muted)">Indexing files to default collection...</span><br>`;
             scrollToBottom('terminal-scroller');
-            
+
             try {
                 const res = await fetch('/api/command', {
                     method: 'POST',
@@ -1095,7 +1095,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 class WebUIRequestHandler(BaseHTTPRequestHandler):
     """HTTP Request Handler for TermMind Web UI."""
 
-    def log_message(self, format: str, *args: Any) -> None:
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         # Suppress logging in terminal to avoid cluttering TermMind output
         pass
 
@@ -1129,29 +1129,53 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
 
         if path == "/api/status":
             cfg = load_config()
-            self._send_json({
-                "config": {
-                    "provider": cfg.get("provider", "ollama"),
-                    "model": cfg.get("model", ""),
-                    "temperature": cfg.get("temperature", 0.7)
-                },
-                "presets": PROVIDER_PRESETS,
-                "cost": session_cost,
-                "tokens": session_tokens,
-                "context_files": context_files,
-                "workspace": os.getcwd()
-            })
+            self._send_json(
+                {
+                    "config": {
+                        "provider": cfg.get("provider", "ollama"),
+                        "model": cfg.get("model", ""),
+                        "temperature": cfg.get("temperature", 0.7),
+                    },
+                    "presets": PROVIDER_PRESETS,
+                    "cost": session_cost,
+                    "tokens": session_tokens,
+                    "context_files": context_files,
+                    "workspace": os.getcwd(),
+                }
+            )
             return
 
         if path == "/api/agents":
             # List available personas based on agent personae
-            self._send_json([
-                {"name": "researcher", "description": "Researches codebases, queries docs, gathers context.", "persona": "Researcher"},
-                {"name": "coder", "description": "Generates, edits, refactors code. Runs syntax checks.", "persona": "Coder"},
-                {"name": "reviewer", "description": "Scans code for logic, style, and optimizations.", "persona": "Reviewer"},
-                {"name": "writer", "description": "Drafts clear technical documentation, readmes, and changelogs.", "persona": "Writer"},
-                {"name": "architect", "description": "Plans systems, designs file trees, selects libraries.", "persona": "Architect"}
-            ])
+            self._send_json(
+                [
+                    {
+                        "name": "researcher",
+                        "description": "Researches codebases, queries docs, gathers context.",
+                        "persona": "Researcher",
+                    },
+                    {
+                        "name": "coder",
+                        "description": "Generates, edits, refactors code. Runs syntax checks.",
+                        "persona": "Coder",
+                    },
+                    {
+                        "name": "reviewer",
+                        "description": "Scans code for logic, style, and optimizations.",
+                        "persona": "Reviewer",
+                    },
+                    {
+                        "name": "writer",
+                        "description": "Drafts clear technical documentation, readmes, and changelogs.",
+                        "persona": "Writer",
+                    },
+                    {
+                        "name": "architect",
+                        "description": "Plans systems, designs file trees, selects libraries.",
+                        "persona": "Architect",
+                    },
+                ]
+            )
             return
 
         if path == "/api/kb/stats":
@@ -1170,15 +1194,17 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
                             docs_size += len(doc.content)
                 except Exception:
                     pass
-            self._send_json({
-                "documents": docs_count,
-                "total_size": docs_size
-            })
+            self._send_json({"documents": docs_count, "total_size": docs_size})
         if path == "/api/files":
             files = []
             cwd = os.getcwd()
             for root, dirs, filenames in os.walk(cwd):
-                dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("__pycache__", "build", "dist", "node_modules", "venv", ".git")]
+                dirs[:] = [
+                    d
+                    for d in dirs
+                    if not d.startswith(".")
+                    and d not in ("__pycache__", "build", "dist", "node_modules", "venv", ".git")
+                ]
                 for f in filenames:
                     if not f.startswith("."):
                         full_path = os.path.join(root, f)
@@ -1194,7 +1220,7 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
 
         content_length = int(self.headers.get("Content-Length", 0))
         post_data = self.rfile.read(content_length)
-        
+
         try:
             body = json.loads(post_data.decode("utf-8")) if post_data else {}
         except json.JSONDecodeError:
@@ -1215,7 +1241,7 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
                 cfg["model"] = body["model"]
             if "temperature" in body:
                 cfg["temperature"] = float(body["temperature"])
-            
+
             save_config(cfg)
             self._send_json({"status": "success", "config": cfg})
             return
@@ -1240,22 +1266,20 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
                     provider=cfg.get("provider", "ollama"),
                     api_key=cfg.get("api_key", ""),
                     model=cfg.get("model", ""),
-                    temperature=cfg.get("temperature", 0.7)
+                    temperature=cfg.get("temperature", 0.7),
                 )
-                
+
                 # Execute chat completion
                 response = client.chat(session_messages)
                 session_messages.append({"role": "assistant", "content": response})
-                
+
                 # Update usage
                 session_cost += client.get_cost()
                 session_tokens += client.total_tokens()
 
-                self._send_json({
-                    "content": response,
-                    "tokens": session_tokens,
-                    "cost": session_cost
-                })
+                self._send_json(
+                    {"content": response, "tokens": session_tokens, "cost": session_cost}
+                )
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
             return
@@ -1271,14 +1295,14 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
                 clean_cmd = command_str[1:] if command_str.startswith("/") else command_str
                 parts = clean_cmd.strip().split(maxsplit=1)
                 cmd = parts[0] if parts else ""
-                
+
                 # Run the command and capture stdout formatted via rich console
                 console = Console(color_system="truecolor", force_terminal=True, width=90)
                 cfg = load_config()
                 client = APIClient(
                     provider=cfg.get("provider", "ollama"),
                     api_key=cfg.get("api_key", ""),
-                    model=cfg.get("model", "")
+                    model=cfg.get("model", ""),
                 )
 
                 with console.capture() as capture:
@@ -1291,17 +1315,18 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
                             client,
                             console,
                             os.getcwd(),
-                            context_files
+                            context_files,
                         )
                         if not handled:
                             # Run as shell command directly
                             import subprocess
+
                             result = subprocess.run(
                                 command_str,
                                 shell=True,
                                 capture_output=True,
                                 text=True,
-                                timeout=20.0
+                                timeout=20.0,
                             )
                             if result.stdout:
                                 console.print(result.stdout)
@@ -1323,10 +1348,10 @@ def start_webui(port: int = 8080, open_browser: bool = True) -> None:
     """Start local Web UI TCPServer and open in browser."""
     # Use ThreadingTCPServer to avoid blocking the server during chat requests
     ThreadingTCPServer.allow_reuse_address = True
-    
+
     max_attempts = 10
     server = None
-    for attempt in range(max_attempts):
+    for _attempt in range(max_attempts):
         try:
             server = ThreadingTCPServer(("127.0.0.1", port), WebUIRequestHandler)
             break
@@ -1338,15 +1363,13 @@ def start_webui(port: int = 8080, open_browser: bool = True) -> None:
         print("Error: Could not find any open port for the Web UI server.")
         return
 
-    print(f"==================================================")
+    print("==================================================")
     print(f"🚀 TermMind Web UI starting on http://localhost:{port}")
-    print(f"==================================================")
-    
+    print("==================================================")
+
     if open_browser:
-        try:
+        with contextlib.suppress(Exception):
             webbrowser.open(f"http://localhost:{port}")
-        except Exception:
-            pass
 
     try:
         server.serve_forever()

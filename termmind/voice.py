@@ -37,6 +37,7 @@ class VoiceMode:
             return self._engine_available
         try:
             import pyttsx3  # noqa: F401
+
             self._engine_available = True
         except ImportError:
             self._engine_available = False
@@ -47,9 +48,10 @@ class VoiceMode:
         if self._engine is None and self._check_engine():
             try:
                 import pyttsx3
+
                 self._engine = pyttsx3.init()
                 # Set speed (pyttsx3 rate: ~100-300, default ~200)
-                self._engine.setProperty('rate', int(200 * self.speed))
+                self._engine.setProperty("rate", int(200 * self.speed))
                 # Try to set language
                 self._set_engine_language(self.language)
             except Exception:
@@ -63,20 +65,20 @@ class VoiceMode:
         if engine is None:
             return
         try:
-            voices = engine.getProperty('voices')
+            voices = engine.getProperty("voices")
             # Try to find a voice matching the language code
             lang_lower = lang_code.lower()
             for voice in voices:
-                if hasattr(voice, 'languages'):
+                if hasattr(voice, "languages"):
                     for voice_lang in voice.languages:
                         if lang_lower in str(voice_lang).lower():
-                            engine.setProperty('voice', voice.id)
+                            engine.setProperty("voice", voice.id)
                             return
-                if hasattr(voice, 'id') and lang_lower in voice.id.lower():
-                    engine.setProperty('voice', voice.id)
+                if hasattr(voice, "id") and lang_lower in voice.id.lower():
+                    engine.setProperty("voice", voice.id)
                     return
-                if hasattr(voice, 'name') and lang_lower in voice.name.lower():
-                    engine.setProperty('voice', voice.id)
+                if hasattr(voice, "name") and lang_lower in voice.name.lower():
+                    engine.setProperty("voice", voice.id)
                     return
         except Exception:
             pass  # Language not available, continue with default
@@ -115,7 +117,7 @@ class VoiceMode:
         self.speed = speed
         if self._engine is not None:
             with contextlib.suppress(Exception):
-                self._engine.setProperty('rate', int(200 * speed))
+                self._engine.setProperty("rate", int(200 * speed))
         if console:
             console.print(f"[success]🔊 Speech speed: {speed}x[/success]")
 
@@ -146,8 +148,9 @@ class VoiceMode:
             return
         try:
             import pyttsx3
+
             engine = pyttsx3.init()
-            engine.setProperty('rate', int(200 * self.speed))
+            engine.setProperty("rate", int(200 * self.speed))
             self._set_engine_language(self.language)
             engine.say(clean_text)
             engine.runAndWait()
@@ -158,30 +161,31 @@ class VoiceMode:
     def _clean_text(self, text: str) -> str:
         """Clean text for TTS by removing markdown, code blocks, etc."""
         import re
+
         # Remove code blocks
-        text = re.sub(r'```[\s\S]*?```', '', text)
+        text = re.sub(r"```[\s\S]*?```", "", text)
         # Remove inline code
-        text = re.sub(r'`[^`]+`', '', text)
+        text = re.sub(r"`[^`]+`", "", text)
         # Remove markdown links
-        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+        text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
         # Remove markdown headers
-        text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+        text = re.sub(r"^#{1,6}\s+", "", text, flags=re.MULTILINE)
         # Remove bold/italic
-        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
-        text = re.sub(r'\*([^*]+)\*', r'\1', text)
-        text = re.sub(r'__([^_]+)__', r'\1', text)
-        text = re.sub(r'_([^_]+)_', r'\1', text)
+        text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+        text = re.sub(r"\*([^*]+)\*", r"\1", text)
+        text = re.sub(r"__([^_]+)__", r"\1", text)
+        text = re.sub(r"_([^_]+)_", r"\1", text)
         # Remove markdown tables (replace with space)
-        text = re.sub(r'\|[^\n]+\|', '', text)
+        text = re.sub(r"\|[^\n]+\|", "", text)
         # Remove horizontal rules
-        text = re.sub(r'^---+$', '', text, flags=re.MULTILINE)
+        text = re.sub(r"^---+$", "", text, flags=re.MULTILINE)
         # Remove HTML tags
-        text = re.sub(r'<[^>]+>', '', text)
+        text = re.sub(r"<[^>]+>", "", text)
         # Remove emoji-like sequences (keep basic ones)
-        text = re.sub(r'[\U0001F600-\U0001F9FF]+', '', text)
+        text = re.sub(r"[\U0001F600-\U0001F9FF]+", "", text)
         # Collapse whitespace
-        text = re.sub(r'\n{3,}', '\n\n', text)
-        text = re.sub(r' {2,}', ' ', text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        text = re.sub(r" {2,}", " ", text)
         return text.strip()
 
     def _start_worker(self):
@@ -201,6 +205,7 @@ class VoiceMode:
                     text = self._queue.pop(0)
             if text is None:
                 import time
+
                 time.sleep(0.1)
                 continue
             try:
@@ -226,15 +231,16 @@ class VoiceMode:
             return []
         try:
             import pyttsx3
+
             engine = pyttsx3.init()
-            voices = engine.getProperty('voices')
+            voices = engine.getProperty("voices")
             result = []
             for v in voices:
                 info = {
-                    "id": getattr(v, 'id', 'unknown'),
-                    "name": getattr(v, 'name', 'Unknown'),
+                    "id": getattr(v, "id", "unknown"),
+                    "name": getattr(v, "name", "Unknown"),
                 }
-                if hasattr(v, 'languages'):
+                if hasattr(v, "languages"):
                     info["languages"] = [str(lang) for lang in v.languages]
                 result.append(info)
             engine.stop()
@@ -304,6 +310,7 @@ def cmd_voice(rest: str, messages, client, console, cwd, ctx_files):
     elif action == "status":
         status = voice.get_status()
         from rich.table import Table
+
         table = Table(title="🔊 Voice Mode", border_style="dim")
         table.add_column("Setting", style="info")
         table.add_column("Value")
@@ -321,6 +328,7 @@ def cmd_voice(rest: str, messages, client, console, cwd, ctx_files):
             console.print("[dim]Install pyttsx3: pip install pyttsx3[/dim]")
             return
         from rich.table import Table
+
         table = Table(title="Available Voices", border_style="dim")
         table.add_column("#", justify="right", style="dim")
         table.add_column("Name", style="cyan")

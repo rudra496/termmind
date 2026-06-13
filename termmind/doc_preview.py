@@ -30,12 +30,14 @@ from .file_ops import find_files, read_file
 # Data models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DocEntry:
     """A parsed documentation entry for one symbol."""
+
     name: str
-    kind: str            # "function", "method", "class"
-    signature: str       # e.g. "parse(path: str, encoding: str = 'utf-8') -> dict"
+    kind: str  # "function", "method", "class"
+    signature: str  # e.g. "parse(path: str, encoding: str = 'utf-8') -> dict"
     return_type: str = ""
     docstring: str = ""
     file: str = ""
@@ -49,6 +51,7 @@ class DocEntry:
 # ---------------------------------------------------------------------------
 # Per-language docstring extractors
 # ---------------------------------------------------------------------------
+
 
 def _extract_python_docstring(filepath: str, content: str) -> list[DocEntry]:
     """Parse a Python file with ast and extract docstrings."""
@@ -72,10 +75,18 @@ def _extract_python_docstring(filepath: str, content: str) -> list[DocEntry]:
             params.append({"name": arg.arg, "type": annotation, "default": default})
 
         if func_node.args.vararg:
-            va_type = ast.unparse(func_node.args.vararg.annotation) if func_node.args.vararg.annotation else ""
+            va_type = (
+                ast.unparse(func_node.args.vararg.annotation)
+                if func_node.args.vararg.annotation
+                else ""
+            )
             params.append({"name": f"*{func_node.args.vararg.arg}", "type": va_type, "default": ""})
         if func_node.args.kwarg:
-            kw_type = ast.unparse(func_node.args.kwarg.annotation) if func_node.args.kwarg.annotation else ""
+            kw_type = (
+                ast.unparse(func_node.args.kwarg.annotation)
+                if func_node.args.kwarg.annotation
+                else ""
+            )
             params.append({"name": f"**{func_node.args.kwarg.arg}", "type": kw_type, "default": ""})
 
         sig_parts = []
@@ -103,14 +114,24 @@ def _extract_python_docstring(filepath: str, content: str) -> list[DocEntry]:
         return prefix
 
     # Module-level docstring
-    if tree.body and isinstance(tree.body[0], ast.Expr) and isinstance(tree.body[0].value, ast.Constant):
+    if (
+        tree.body
+        and isinstance(tree.body[0], ast.Expr)
+        and isinstance(tree.body[0].value, ast.Constant)
+    ):
         mod_doc = tree.body[0].value.value
         if isinstance(mod_doc, str) and mod_doc.strip():
-            entries.append(DocEntry(
-                name=Path(filepath).stem, kind="module",
-                signature="module", docstring=mod_doc.strip(),
-                file=filepath, line=1, language="python",
-            ))
+            entries.append(
+                DocEntry(
+                    name=Path(filepath).stem,
+                    kind="module",
+                    signature="module",
+                    docstring=mod_doc.strip(),
+                    file=filepath,
+                    line=1,
+                    language="python",
+                )
+            )
 
     # Classes
     for node in ast.walk(tree):
@@ -120,12 +141,17 @@ def _extract_python_docstring(filepath: str, content: str) -> list[DocEntry]:
         if isinstance(node, ast.ClassDef):
             doc = ast.get_docstring(node) or ""
             bases = ", ".join(ast.unparse(b) for b in node.bases)
-            entries.append(DocEntry(
-                name=node.name, kind="class",
-                signature=f"class {node.name}({bases})" if bases else f"class {node.name}",
-                docstring=doc.strip() if doc else "",
-                file=filepath, line=node.lineno, language="python",
-            ))
+            entries.append(
+                DocEntry(
+                    name=node.name,
+                    kind="class",
+                    signature=f"class {node.name}({bases})" if bases else f"class {node.name}",
+                    docstring=doc.strip() if doc else "",
+                    file=filepath,
+                    line=node.lineno,
+                    language="python",
+                )
+            )
 
         elif isinstance(node, ast.FunctionDef):
             # Determine if it's a method (direct child of a class)
@@ -143,13 +169,20 @@ def _extract_python_docstring(filepath: str, content: str) -> list[DocEntry]:
                 full_sig += f" -> {ret}"
             doc = ast.get_docstring(node) or ""
             dec_prefix = _decorators(node)
-            entries.append(DocEntry(
-                name=node.name, kind=kind,
-                signature=dec_prefix + full_sig if dec_prefix else full_sig,
-                return_type=ret, docstring=doc.strip() if doc else "",
-                file=filepath, line=node.lineno, params=params,
-                language="python", parent_class=parent,
-            ))
+            entries.append(
+                DocEntry(
+                    name=node.name,
+                    kind=kind,
+                    signature=dec_prefix + full_sig if dec_prefix else full_sig,
+                    return_type=ret,
+                    docstring=doc.strip() if doc else "",
+                    file=filepath,
+                    line=node.lineno,
+                    params=params,
+                    language="python",
+                    parent_class=parent,
+                )
+            )
 
     return entries
 
@@ -178,8 +211,7 @@ def _extract_js_ts_docstring(filepath: str, content: str) -> list[DocEntry]:
         if doc_block:
             raw = doc_block.group(1)
             doc_text = "\n".join(
-                line.strip().lstrip("*").strip()
-                for line in raw.splitlines()
+                line.strip().lstrip("*").strip() for line in raw.splitlines()
             ).strip()
 
         func_name = match.group(2)
@@ -191,12 +223,19 @@ def _extract_js_ts_docstring(filepath: str, content: str) -> list[DocEntry]:
                 sig += f": {ret}"
 
             params = _parse_js_params(params_str)
-            entries.append(DocEntry(
-                name=func_name, kind="function", signature=sig,
-                return_type=ret, docstring=doc_text,
-                file=filepath, line=content[:match.start()].count("\n") + 1,
-                params=params, language=lang,
-            ))
+            entries.append(
+                DocEntry(
+                    name=func_name,
+                    kind="function",
+                    signature=sig,
+                    return_type=ret,
+                    docstring=doc_text,
+                    file=filepath,
+                    line=content[: match.start()].count("\n") + 1,
+                    params=params,
+                    language=lang,
+                )
+            )
         else:
             cls_name = match.group(5)
             if cls_name:
@@ -204,12 +243,17 @@ def _extract_js_ts_docstring(filepath: str, content: str) -> list[DocEntry]:
                 sig = f"class {cls_name}"
                 if extends:
                     sig += f" extends {extends}"
-                entries.append(DocEntry(
-                    name=cls_name, kind="class", signature=sig,
-                    docstring=doc_text,
-                    file=filepath, line=content[:match.start()].count("\n") + 1,
-                    language=lang,
-                ))
+                entries.append(
+                    DocEntry(
+                        name=cls_name,
+                        kind="class",
+                        signature=sig,
+                        docstring=doc_text,
+                        file=filepath,
+                        line=content[: match.start()].count("\n") + 1,
+                        language=lang,
+                    )
+                )
 
     # Also extract non-JSDoc functions (for signatures even without docs)
     func_re = re.compile(
@@ -227,12 +271,19 @@ def _extract_js_ts_docstring(filepath: str, content: str) -> list[DocEntry]:
         if ret:
             sig += f": {ret}"
         params = _parse_js_params(params_str)
-        entries.append(DocEntry(
-            name=name, kind="function", signature=sig,
-            return_type=ret, docstring="",
-            file=filepath, line=content[:match.start()].count("\n") + 1,
-            params=params, language=lang,
-        ))
+        entries.append(
+            DocEntry(
+                name=name,
+                kind="function",
+                signature=sig,
+                return_type=ret,
+                docstring="",
+                file=filepath,
+                line=content[: match.start()].count("\n") + 1,
+                params=params,
+                language=lang,
+            )
+        )
 
     return entries
 
@@ -299,11 +350,19 @@ def _extract_go_docstring(filepath: str, content: str) -> list[DocEntry]:
                 ptype = " ".join(parts[:-1]) if len(parts) > 1 else ""
                 params.append({"name": pname, "type": ptype, "default": ""})
 
-            entries.append(DocEntry(
-                name=name, kind="function", signature=sig,
-                return_type=return_str.strip(), docstring=doc,
-                file=filepath, line=i + 1, params=params, language="go",
-            ))
+            entries.append(
+                DocEntry(
+                    name=name,
+                    kind="function",
+                    signature=sig,
+                    return_type=return_str.strip(),
+                    docstring=doc,
+                    file=filepath,
+                    line=i + 1,
+                    params=params,
+                    language="go",
+                )
+            )
             continue
 
         # Type: type Name struct
@@ -311,10 +370,17 @@ def _extract_go_docstring(filepath: str, content: str) -> list[DocEntry]:
         if type_match:
             name = type_match.group(1)
             doc = _go_doc_above(lines, i)
-            entries.append(DocEntry(
-                name=name, kind="class", signature=f"type {name} struct",
-                docstring=doc, file=filepath, line=i + 1, language="go",
-            ))
+            entries.append(
+                DocEntry(
+                    name=name,
+                    kind="class",
+                    signature=f"type {name} struct",
+                    docstring=doc,
+                    file=filepath,
+                    line=i + 1,
+                    language="go",
+                )
+            )
 
     return entries
 
@@ -354,11 +420,19 @@ def _extract_rust_docstring(filepath: str, content: str) -> list[DocEntry]:
                 sig += f" -> {ret}"
 
             params = _parse_rust_params(params_str)
-            entries.append(DocEntry(
-                name=name, kind="function", signature=sig,
-                return_type=ret, docstring=doc,
-                file=filepath, line=i + 1, params=params, language="rust",
-            ))
+            entries.append(
+                DocEntry(
+                    name=name,
+                    kind="function",
+                    signature=sig,
+                    return_type=ret,
+                    docstring=doc,
+                    file=filepath,
+                    line=i + 1,
+                    params=params,
+                    language="rust",
+                )
+            )
             continue
 
         # Struct: pub struct Name { ... }
@@ -366,10 +440,17 @@ def _extract_rust_docstring(filepath: str, content: str) -> list[DocEntry]:
         if struct_match:
             name = struct_match.group(1)
             doc = _rust_doc_above(lines, i)
-            entries.append(DocEntry(
-                name=name, kind="class", signature=f"struct {name}",
-                docstring=doc, file=filepath, line=i + 1, language="rust",
-            ))
+            entries.append(
+                DocEntry(
+                    name=name,
+                    kind="class",
+                    signature=f"struct {name}",
+                    docstring=doc,
+                    file=filepath,
+                    line=i + 1,
+                    language="rust",
+                )
+            )
             continue
 
         # Impl block methods (simple: fn name inside impl)
@@ -394,12 +475,19 @@ def _extract_rust_docstring(filepath: str, content: str) -> list[DocEntry]:
                     msig = f"fn {mname}({mparams})"
                     if mret:
                         msig += f" -> {mret}"
-                    entries.append(DocEntry(
-                        name=mname, kind="method", signature=msig,
-                        return_type=mret, docstring=mdoc,
-                        file=filepath, line=j + 1,
-                        params=_parse_rust_params(mparams), language="rust",
-                    ))
+                    entries.append(
+                        DocEntry(
+                            name=mname,
+                            kind="method",
+                            signature=msig,
+                            return_type=mret,
+                            docstring=mdoc,
+                            file=filepath,
+                            line=j + 1,
+                            params=_parse_rust_params(mparams),
+                            language="rust",
+                        )
+                    )
                 j += 1
 
     return entries
@@ -461,20 +549,24 @@ def _extract_java_docstring(filepath: str, content: str) -> list[DocEntry]:
         if doc_block:
             raw = doc_block.group(1)
             doc_text = "\n".join(
-                line.strip().lstrip("*").strip()
-                for line in raw.splitlines()
+                line.strip().lstrip("*").strip() for line in raw.splitlines()
             ).strip()
 
-        line_num = content[:match.start()].count("\n") + 1
+        line_num = content[: match.start()].count("\n") + 1
 
         cls_name = match.group(2)
         if cls_name:
-            entries.append(DocEntry(
-                name=cls_name, kind="class",
-                signature=f"class {cls_name}",
-                docstring=doc_text,
-                file=filepath, line=line_num, language="java",
-            ))
+            entries.append(
+                DocEntry(
+                    name=cls_name,
+                    kind="class",
+                    signature=f"class {cls_name}",
+                    docstring=doc_text,
+                    file=filepath,
+                    line=line_num,
+                    language="java",
+                )
+            )
             continue
 
         method_name = match.group(3)
@@ -482,11 +574,18 @@ def _extract_java_docstring(filepath: str, content: str) -> list[DocEntry]:
         if method_name:
             params = _parse_java_params(params_str)
             sig = f"{method_name}({params_str})"
-            entries.append(DocEntry(
-                name=method_name, kind="function", signature=sig,
-                docstring=doc_text,
-                file=filepath, line=line_num, params=params, language="java",
-            ))
+            entries.append(
+                DocEntry(
+                    name=method_name,
+                    kind="function",
+                    signature=sig,
+                    docstring=doc_text,
+                    file=filepath,
+                    line=line_num,
+                    params=params,
+                    language="java",
+                )
+            )
 
     return entries
 
@@ -555,6 +654,7 @@ def extract_all_docs(project_root: str) -> list[DocEntry]:
 # Query & lookup
 # ---------------------------------------------------------------------------
 
+
 def lookup_symbol(project_root: str, query: str) -> list[DocEntry]:
     """Look up a symbol by name. Supports dotted paths like 'module.Class.method'."""
     # Try to load cached index; fall back to fresh extract
@@ -572,33 +672,21 @@ def lookup_symbol(project_root: str, query: str) -> list[DocEntry]:
     if not matches and len(parts) == 2:
         # ClassName.method
         cls_name, method_name = parts
-        matches = [
-            e for e in entries
-            if e.parent_class == cls_name and e.name == method_name
-        ]
+        matches = [e for e in entries if e.parent_class == cls_name and e.name == method_name]
         if not matches:
             # Also check module.Class
-            matches = [
-                e for e in entries
-                if e.name == cls_name and e.kind == "class"
-            ]
+            matches = [e for e in entries if e.name == cls_name and e.kind == "class"]
             # If class found, also grab its methods
             if matches:
                 matches[0]
-                matches.extend(
-                    e for e in entries
-                    if e.parent_class == cls_name
-                )
+                matches.extend(e for e in entries if e.parent_class == cls_name)
 
     if not matches and len(parts) >= 3:
         # module.Class.method
         method_name = parts[-1]
         cls_name = parts[-2]
         module = ".".join(parts[:-2])
-        matches = [
-            e for e in entries
-            if e.name == method_name and e.parent_class == cls_name
-        ]
+        matches = [e for e in entries if e.name == method_name and e.parent_class == cls_name]
         # If module specified, filter by file path containing module
         if matches and module:
             matches = [e for e in matches if module in e.file.replace("/", ".")]
@@ -633,9 +721,9 @@ def suggest_symbols(project_root: str, prefix: str) -> list[DocEntry]:
     entries = extract_all_docs(project_root)
     prefix_lower = prefix.lower()
     return [
-        e for e in entries
-        if e.name.lower().startswith(prefix_lower)
-           or prefix_lower in e.name.lower()
+        e
+        for e in entries
+        if e.name.lower().startswith(prefix_lower) or prefix_lower in e.name.lower()
     ][:15]
 
 
@@ -643,11 +731,15 @@ def suggest_symbols(project_root: str, prefix: str) -> list[DocEntry]:
 # Rich rendering
 # ---------------------------------------------------------------------------
 
+
 def render_doc_entry(entry: DocEntry, console: Console) -> None:
     """Render a single DocEntry as a Rich panel."""
     # Build header
     kind_icon = {
-        "function": "λ", "method": "ƒ", "class": "◆", "module": "📦",
+        "function": "λ",
+        "method": "ƒ",
+        "class": "◆",
+        "module": "📦",
     }.get(entry.kind, "•")
 
     kind_label = entry.kind.capitalize()
@@ -661,7 +753,9 @@ def render_doc_entry(entry: DocEntry, console: Console) -> None:
 
     # Signature
     sig_text = Text(entry.signature)
-    body_parts.append(Panel(sig_text, title="[bold]Signature[/bold]", border_style="blue", expand=False))
+    body_parts.append(
+        Panel(sig_text, title="[bold]Signature[/bold]", border_style="blue", expand=False)
+    )
 
     # Location
     rel = os.path.relpath(entry.file, ".") if os.path.exists(entry.file) else entry.file
@@ -694,9 +788,13 @@ def render_doc_entry(entry: DocEntry, console: Console) -> None:
         # Try syntax highlighting
         try:
             syn = Syntax(doc, "markdown", theme="monokai", word_wrap=True)
-            body_parts.append(Panel(syn, title="[bold]Docstring[/bold]", border_style="green", expand=False))
+            body_parts.append(
+                Panel(syn, title="[bold]Docstring[/bold]", border_style="green", expand=False)
+            )
         except Exception:
-            body_parts.append(Panel(doc, title="[bold]Docstring[/bold]", border_style="green", expand=False))
+            body_parts.append(
+                Panel(doc, title="[bold]Docstring[/bold]", border_style="green", expand=False)
+            )
     else:
         body_parts.append("[dim yellow]No docstring found.[/dim yellow]")
 
@@ -705,7 +803,9 @@ def render_doc_entry(entry: DocEntry, console: Console) -> None:
     console.print(Panel(inner, title=header, border_style="cyan", expand=False, padding=(1, 2)))
 
 
-def render_doc_list(entries: list[DocEntry], console: Console, title: str = "Documentation") -> None:
+def render_doc_list(
+    entries: list[DocEntry], console: Console, title: str = "Documentation"
+) -> None:
     """Render a list of DocEntries as a table."""
     if not entries:
         console.print("[dim]No documentation entries found.[/dim]")
@@ -725,7 +825,11 @@ def render_doc_list(entries: list[DocEntry], console: Console, title: str = "Doc
         if entry.parent_class:
             loc += f"\n[dim]← {entry.parent_class}[/dim]"
         table.add_row(
-            entry.name, entry.kind, entry.signature, doc_preview, loc,
+            entry.name,
+            entry.kind,
+            entry.signature,
+            doc_preview,
+            loc,
         )
 
     console.print(table)

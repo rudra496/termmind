@@ -1,14 +1,11 @@
 """Tests for session management."""
 
 import json
-import time
-from pathlib import Path
 from unittest.mock import patch
-from datetime import datetime
 
 import pytest
 
-from termmind.sessions import save_session, load_session, list_sessions, export_session
+from termmind.sessions import export_session, list_sessions, load_session, save_session
 
 
 @pytest.fixture

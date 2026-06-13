@@ -3,13 +3,13 @@
 import pytest
 
 from termmind.utils import (
-    estimate_tokens,
     calculate_cost,
     detect_language,
+    estimate_tokens,
     extract_code_blocks,
-    truncate_text,
     format_file_path,
     render_markdown,
+    truncate_text,
 )
 
 
@@ -57,36 +57,39 @@ class TestCalculateCost:
 
 
 class TestDetectLanguage:
-    @pytest.mark.parametrize("filename,expected", [
-        ("main.py", "python"),
-        ("app.js", "javascript"),
-        ("index.ts", "typescript"),
-        ("main.go", "go"),
-        ("lib.rs", "rust"),
-        ("App.java", "java"),
-        ("script.rb", "ruby"),
-        ("main.c", "c"),
-        ("lib.cpp", "cpp"),
-        ("Program.cs", "csharp"),
-        ("index.php", "php"),
-        ("run.sh", "bash"),
-        ("config.yaml", "yaml"),
-        ("config.yml", "yaml"),
-        ("setup.toml", "toml"),
-        ("data.json", "json"),
-        ("README.md", "markdown"),
-        ("index.html", "html"),
-        ("style.css", "css"),
-        ("query.sql", "sql"),
-        ("app.swift", "swift"),
-        ("Main.kt", "kotlin"),
-        ("App.scala", "scala"),
-        ("script.lua", "lua"),
-        ("analysis.r", "r"),
-        ("app.dart", "dart"),
-        ("App.jsx", "jsx"),
-        ("App.tsx", "tsx"),
-    ])
+    @pytest.mark.parametrize(
+        "filename,expected",
+        [
+            ("main.py", "python"),
+            ("app.js", "javascript"),
+            ("index.ts", "typescript"),
+            ("main.go", "go"),
+            ("lib.rs", "rust"),
+            ("App.java", "java"),
+            ("script.rb", "ruby"),
+            ("main.c", "c"),
+            ("lib.cpp", "cpp"),
+            ("Program.cs", "csharp"),
+            ("index.php", "php"),
+            ("run.sh", "bash"),
+            ("config.yaml", "yaml"),
+            ("config.yml", "yaml"),
+            ("setup.toml", "toml"),
+            ("data.json", "json"),
+            ("README.md", "markdown"),
+            ("index.html", "html"),
+            ("style.css", "css"),
+            ("query.sql", "sql"),
+            ("app.swift", "swift"),
+            ("Main.kt", "kotlin"),
+            ("App.scala", "scala"),
+            ("script.lua", "lua"),
+            ("analysis.r", "r"),
+            ("app.dart", "dart"),
+            ("App.jsx", "jsx"),
+            ("App.tsx", "tsx"),
+        ],
+    )
     def test_extensions(self, filename, expected):
         assert detect_language(filename) == expected
 
@@ -120,7 +123,7 @@ class TestExtractCodeBlocks:
         assert extract_code_blocks("no code here") == []
 
     def test_empty_language(self):
-        text = '```\nsome code\n```'
+        text = "```\nsome code\n```"
         blocks = extract_code_blocks(text)
         assert len(blocks) == 1
         assert blocks[0][0] == ""
@@ -153,6 +156,6 @@ class TestFormatFilePath:
 class TestRenderMarkdown:
     def test_render(self, capsys):
         render_markdown("# Hello")
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Just verify it doesn't crash
         assert True

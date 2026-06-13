@@ -1,6 +1,5 @@
 """Shared test configuration for TermMind tests."""
 
-import os
 import sys
 import tempfile
 from pathlib import Path
@@ -21,8 +20,7 @@ def tmp_dir():
 
 @pytest.fixture
 def mock_config():
-    with patch("termmind.api.load_config") as mc, \
-         patch("termmind.api.get_provider_info") as mp:
+    with patch("termmind.api.load_config") as mc, patch("termmind.api.get_provider_info") as mp:
         mc.return_value = {
             "provider": "ollama",
             "api_key": "",

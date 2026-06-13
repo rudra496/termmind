@@ -2,30 +2,29 @@
 
 import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 from termmind.file_ops import (
-    read_file,
-    write_file,
-    edit_file,
-    create_file,
-    delete_file,
-    backup_file,
-    get_file_info,
-    apply_diff,
-    compute_diff,
-    find_files,
-    search_in_files,
-    grep_files,
-    build_file_tree,
-    get_undo_history,
-    undo_last_edit,
-    undo_all_edits,
-    get_session_diffs,
     _detect_encoding,
     _edit_history,
+    apply_diff,
+    backup_file,
+    build_file_tree,
+    compute_diff,
+    create_file,
+    delete_file,
+    edit_file,
+    find_files,
+    get_file_info,
+    get_session_diffs,
+    get_undo_history,
+    grep_files,
+    read_file,
+    search_in_files,
+    undo_all_edits,
+    undo_last_edit,
+    write_file,
 )
 
 
@@ -46,7 +45,9 @@ def sample_file(tmp_path):
 @pytest.fixture
 def python_file(tmp_path):
     p = tmp_path / "app.py"
-    p.write_text('import os\n\ndef main():\n    print("hello")\n\nif __name__ == "__main__":\n    main()\n')
+    p.write_text(
+        'import os\n\ndef main():\n    print("hello")\n\nif __name__ == "__main__":\n    main()\n'
+    )
     return p
 
 

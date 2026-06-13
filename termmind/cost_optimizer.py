@@ -40,6 +40,7 @@ PRICING = {
     },
 }
 
+
 class CostOptimizer:
     """Track and optimize API costs across providers."""
 
@@ -78,15 +79,16 @@ class CostOptimizer:
             return provider_prices["_default"]
         return {"input": 0.01, "output": 0.03}  # Fallback estimate
 
-    def estimate_cost(self, provider: str, model: str,
-                      input_tokens: int, output_tokens: int) -> float:
+    def estimate_cost(
+        self, provider: str, model: str, input_tokens: int, output_tokens: int
+    ) -> float:
         """Estimate cost for a single request."""
         prices = self.get_pricing(provider, model)
-        return (input_tokens * prices["input"] / 1000 +
-                output_tokens * prices["output"] / 1000)
+        return input_tokens * prices["input"] / 1000 + output_tokens * prices["output"] / 1000
 
-    def record_request(self, provider: str, model: str,
-                       input_tokens: int, output_tokens: int) -> dict:
+    def record_request(
+        self, provider: str, model: str, input_tokens: int, output_tokens: int
+    ) -> dict:
         """Record a request and return cost info."""
         cost = self.estimate_cost(provider, model, input_tokens, output_tokens)
         entry = {
@@ -109,17 +111,16 @@ class CostOptimizer:
                 budget_alert = f"⚠️ Budget exceeded! ${total:.2f} / ${self.budget:.2f}"
                 self.budget_warned = True
             elif pct >= 80 and not self.budget_warned:
-                budget_alert = f"⚠️ Approaching budget: ${total:.2f} / ${self.budget:.2f} ({pct:.0f}%)"
+                budget_alert = (
+                    f"⚠️ Approaching budget: ${total:.2f} / ${self.budget:.2f} ({pct:.0f}%)"
+                )
 
         return {"cost": cost, "budget_alert": budget_alert}
 
     def get_session_total(self) -> float:
         """Get total cost for current session (today)."""
         today = datetime.now().strftime("%Y-%m-%d")
-        return sum(
-            e["cost"] for e in self.session_costs
-            if e["timestamp"].startswith(today)
-        )
+        return sum(e["cost"] for e in self.session_costs if e["timestamp"].startswith(today))
 
     def get_total_all_time(self) -> float:
         """Get total cost across all sessions."""
@@ -191,19 +192,23 @@ class CostOptimizer:
             for model, prices in models.items():
                 if model.startswith("_"):
                     continue
-                cost = (input_tokens * prices["input"] / 1000 +
-                        output_tokens * prices["output"] / 1000)
-                comparisons.append({
-                    "provider": provider,
-                    "model": model,
-                    "cost": round(cost, 6),
-                    "input_per_1k": prices["input"],
-                    "output_per_1k": prices["output"],
-                })
+                cost = (
+                    input_tokens * prices["input"] / 1000 + output_tokens * prices["output"] / 1000
+                )
+                comparisons.append(
+                    {
+                        "provider": provider,
+                        "model": model,
+                        "cost": round(cost, 6),
+                        "input_per_1k": prices["input"],
+                        "output_per_1k": prices["output"],
+                    }
+                )
         return sorted(comparisons, key=lambda x: x["cost"])
 
-    def suggest_savings(self, provider: str, model: str,
-                        input_tokens: int, output_tokens: int) -> list[dict]:
+    def suggest_savings(
+        self, provider: str, model: str, input_tokens: int, output_tokens: int
+    ) -> list[dict]:
         """Suggest cheaper alternatives for current usage."""
         current_cost = self.estimate_cost(provider, model, input_tokens, output_tokens)
         alternatives = []
@@ -212,62 +217,77 @@ class CostOptimizer:
             if comp["cost"] < current_cost and comp["provider"] != provider:
                 savings_pct = round((1 - comp["cost"] / current_cost) * 100, 1)
                 savings_amt = round(current_cost - comp["cost"], 6)
-                alternatives.append({
-                    "provider": comp["provider"],
-                    "model": comp["model"],
-                    "cost": comp["cost"],
-                    "savings_percent": savings_pct,
-                    "savings_amount": savings_amt,
-                })
+                alternatives.append(
+                    {
+                        "provider": comp["provider"],
+                        "model": comp["model"],
+                        "cost": comp["cost"],
+                        "savings_percent": savings_pct,
+                        "savings_amount": savings_amt,
+                    }
+                )
         return sorted(alternatives, key=lambda x: -x["savings_percent"])[:5]
 
     def optimize_context(self, messages: list[dict], provider: str, model: str) -> dict:
         """Analyze context and suggest optimizations to save tokens."""
-        total_tokens = sum(len(str(m.get("content", "")).split()) * 1.3
-                         for m in messages)
+        total_tokens = sum(len(str(m.get("content", "")).split()) * 1.3 for m in messages)
         prices = self.get_pricing(provider, model)
-        current_cost = (total_tokens * prices["input"] / 1000 +
-                       (total_tokens * 0.3) * prices["output"] / 1000)
+        current_cost = (
+            total_tokens * prices["input"] / 1000 + (total_tokens * 0.3) * prices["output"] / 1000
+        )
 
         suggestions = []
         # Check for long messages
-        long_msgs = [(i, len(str(m.get("content", "")))) for i, m in enumerate(messages)
-                     if len(str(m.get("content", ""))) > 5000]
+        long_msgs = [
+            (i, len(str(m.get("content", ""))))
+            for i, m in enumerate(messages)
+            if len(str(m.get("content", ""))) > 5000
+        ]
         if long_msgs:
             savings = sum(len(content) for _, content in long_msgs) * 0.3 * 1.3
-            suggestions.append({
-                "type": "truncate_long_messages",
-                "description": f"{len(long_msgs)} messages over 5000 chars can be truncated",
-                "estimated_savings_tokens": int(savings),
-            })
+            suggestions.append(
+                {
+                    "type": "truncate_long_messages",
+                    "description": f"{len(long_msgs)} messages over 5000 chars can be truncated",
+                    "estimated_savings_tokens": int(savings),
+                }
+            )
 
         # Check for repeated content
         content_hashes = {}
         for i, m in enumerate(messages):
             c = str(m.get("content", ""))[:200]
             if c in content_hashes:
-                suggestions.append({
-                    "type": "duplicate_content",
-                    "description": f"Messages {content_hashes[c]} and {i} start similarly",
-                    "estimated_savings_tokens": 500,
-                })
+                suggestions.append(
+                    {
+                        "type": "duplicate_content",
+                        "description": f"Messages {content_hashes[c]} and {i} start similarly",
+                        "estimated_savings_tokens": 500,
+                    }
+                )
             content_hashes[c] = i
 
         # Check old messages
         if len(messages) > 10:
             removable = len(messages) - 6
-            savings = sum(len(str(m.get("content", "")).split()) for m in messages[:removable]) * 1.3
-            suggestions.append({
-                "type": "remove_old_messages",
-                "description": f"Remove {removable} oldest messages, keep last 6",
-                "estimated_savings_tokens": int(savings),
-            })
+            savings = (
+                sum(len(str(m.get("content", "")).split()) for m in messages[:removable]) * 1.3
+            )
+            suggestions.append(
+                {
+                    "type": "remove_old_messages",
+                    "description": f"Remove {removable} oldest messages, keep last 6",
+                    "estimated_savings_tokens": int(savings),
+                }
+            )
 
         return {
             "current_context_tokens": int(total_tokens),
             "estimated_request_cost": round(current_cost, 6),
             "suggestions": suggestions,
-            "total_potential_savings_tokens": sum(s["estimated_savings_tokens"] for s in suggestions),
+            "total_potential_savings_tokens": sum(
+                s["estimated_savings_tokens"] for s in suggestions
+            ),
         }
 
     def get_analysis_text(self) -> str:
@@ -276,7 +296,9 @@ class CostOptimizer:
 
         # Token stats
         tokens = self.get_token_stats()
-        lines.append(f"  Tokens: {tokens['input']:,} in / {tokens['output']:,} out ({tokens['requests']} requests)")
+        lines.append(
+            f"  Tokens: {tokens['input']:,} in / {tokens['output']:,} out ({tokens['requests']} requests)"
+        )
 
         # Session total
         total = self.get_session_total()
@@ -292,7 +314,9 @@ class CostOptimizer:
             bar_len = 20
             filled = int(bar_len * budget["percent"] / 100)
             bar = "█" * filled + "░" * (bar_len - filled)
-            lines.append(f"  Budget: [{bar}] {budget['percent']:.0f}% (${budget['spent']:.2f} / ${budget['budget']:.2f})")
+            lines.append(
+                f"  Budget: [{bar}] {budget['percent']:.0f}% (${budget['spent']:.2f} / ${budget['budget']:.2f})"
+            )
 
         # Provider breakdown
         by_provider = self.get_breakdown_by_provider()

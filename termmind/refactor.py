@@ -106,7 +106,9 @@ def _generate_diff(old: str, new: str, filepath: str) -> str:
     """Generate a unified diff between old and new content."""
     old_lines = old.splitlines(keepends=True)
     new_lines = new.splitlines(keepends=True)
-    diff = difflib.unified_diff(old_lines, new_lines, fromfile=f"a/{filepath}", tofile=f"b/{filepath}")
+    diff = difflib.unified_diff(
+        old_lines, new_lines, fromfile=f"a/{filepath}", tofile=f"b/{filepath}"
+    )
     return "".join(diff)
 
 
@@ -156,7 +158,6 @@ File: {filepath}
 
 Output the COMPLETE refactored file. Use the same language as the input.
 Do not add any explanation, only the code.""",
-
         "rename": f"""You are a refactoring assistant. Rename the identifier specified below across the entire file.
 
 Instructions: {instruction or "Identify the most important variable, function, or class name that should be renamed for clarity."}
@@ -168,7 +169,6 @@ File: {filepath}
 
 Output the COMPLETE refactored file with all references updated.
 Do not add any explanation, only the code.""",
-
         "inline": f"""You are a refactoring assistant. Inline the specified variable or function.
 
 Instructions: {instruction or "Find a variable or small function that can be inlined (replaced with its value/body) for simplicity."}
@@ -180,7 +180,6 @@ File: {filepath}
 
 Output the COMPLETE refactored file.
 Do not add any explanation, only the code.""",
-
         "extract-class": f"""You are a refactoring assistant. Extract related methods/variables into a class.
 
 Instructions: {instruction or "Identify related functions and variables that should be grouped into a class."}
@@ -192,7 +191,6 @@ File: {filepath}
 
 Output the COMPLETE refactored file.
 Do not add any explanation, only the code.""",
-
         "simplify": f"""You are a refactoring assistant. Simplify the code.
 
 Instructions: {instruction or "Simplify complex expressions, reduce nesting, improve readability while preserving behavior."}
@@ -204,7 +202,6 @@ File: {filepath}
 
 Output the COMPLETE refactored file.
 Do not add any explanation, only the code.""",
-
         "dead-code": f"""You are a refactoring assistant. Find and remove dead code.
 
 Instructions: {instruction or "Identify unused imports, unreachable code, unused variables, and unused functions. Remove them."}
@@ -216,7 +213,6 @@ File: {filepath}
 
 Output the COMPLETE refactored file.
 Do not add any explanation, only the code.""",
-
         "sort-imports": f"""You are a refactoring assistant. Sort and organize imports according to PEP 8.
 
 Rules:
@@ -235,7 +231,6 @@ File: {filepath}
 
 Output the COMPLETE refactored file.
 Do not add any explanation, only the code.""",
-
         "add-types": f"""You are a refactoring assistant. Add type hints to all function signatures.
 
 Instructions: {instruction or "Add proper type hints to all function parameters and return types. Use standard Python type hints."}
@@ -345,28 +340,182 @@ def _apply_regex_refactoring(
 
 # Standard library modules for import sorting
 STDLIB_MODULES = {
-    "abc", "aifc", "argparse", "array", "ast", "asyncio", "atexit", "base64", "bdb",
-    "binascii", "bisect", "builtins", "bz2", "calendar", "cgi", "cmath", "cmd",
-    "code", "codecs", "collections", "colorsys", "concurrent", "configparser", "contextlib",
-    "copy", "copyreg", "cProfile", "csv", "ctypes", "dataclasses", "datetime", "dbm",
-    "decimal", "difflib", "dis", "doctest", "email", "enum", "errno", "faulthandler",
-    "fcntl", "filecmp", "fileinput", "fnmatch", "fractions", "ftplib", "functools",
-    "gc", "getopt", "getpass", "gettext", "glob", "graphlib", "grp", "gzip", "hashlib",
-    "heapq", "hmac", "html", "http", "imaplib", "importlib", "inspect", "io", "ipaddress",
-    "itertools", "json", "keyword", "linecache", "locale", "logging", "lzma", "marshal",
-    "math", "mimetypes", "mmap", "multiprocessing", "netrc", "numbers", "operator",
-    "optparse", "os", "pathlib", "pdb", "pickle", "pipes", "pkgutil", "platform",
-    "plistlib", "poplib", "posix", "posixpath", "pprint", "profile", "pstats", "pty",
-    "pwd", "py_compile", "pyclbr", "pydoc", "queue", "quopri", "random", "re", "readline",
-    "reprlib", "resource", "rlcompleter", "runpy", "sched", "secrets", "select", "selectors",
-    "shelve", "shlex", "shutil", "signal", "site", "smtpd", "smtplib", "sndhdr", "socket",
-    "socketserver", "sqlite3", "ssl", "stat", "statistics", "string", "stringprep",
-    "struct", "subprocess", "sunau", "sys", "sysconfig", "syslog", "tabnanny", "tarfile",
-    "tempfile", "termios", "test", "textwrap", "threading", "time", "timeit", "tkinter",
-    "token", "tokenize", "trace", "traceback", "tracemalloc", "tty", "turtle", "turtledemo",
-    "types", "typing", "unicodedata", "unittest", "urllib", "uu", "uuid", "venv",
-    "warnings", "wave", "weakref", "webbrowser", "winreg", "winsound", "wsgiref",
-    "xdrlib", "xml", "xmlrpc", "zipapp", "zipfile", "zipimport", "zlib", "zoneinfo",
+    "abc",
+    "aifc",
+    "argparse",
+    "array",
+    "ast",
+    "asyncio",
+    "atexit",
+    "base64",
+    "bdb",
+    "binascii",
+    "bisect",
+    "builtins",
+    "bz2",
+    "calendar",
+    "cgi",
+    "cmath",
+    "cmd",
+    "code",
+    "codecs",
+    "collections",
+    "colorsys",
+    "concurrent",
+    "configparser",
+    "contextlib",
+    "copy",
+    "copyreg",
+    "cProfile",
+    "csv",
+    "ctypes",
+    "dataclasses",
+    "datetime",
+    "dbm",
+    "decimal",
+    "difflib",
+    "dis",
+    "doctest",
+    "email",
+    "enum",
+    "errno",
+    "faulthandler",
+    "fcntl",
+    "filecmp",
+    "fileinput",
+    "fnmatch",
+    "fractions",
+    "ftplib",
+    "functools",
+    "gc",
+    "getopt",
+    "getpass",
+    "gettext",
+    "glob",
+    "graphlib",
+    "grp",
+    "gzip",
+    "hashlib",
+    "heapq",
+    "hmac",
+    "html",
+    "http",
+    "imaplib",
+    "importlib",
+    "inspect",
+    "io",
+    "ipaddress",
+    "itertools",
+    "json",
+    "keyword",
+    "linecache",
+    "locale",
+    "logging",
+    "lzma",
+    "marshal",
+    "math",
+    "mimetypes",
+    "mmap",
+    "multiprocessing",
+    "netrc",
+    "numbers",
+    "operator",
+    "optparse",
+    "os",
+    "pathlib",
+    "pdb",
+    "pickle",
+    "pipes",
+    "pkgutil",
+    "platform",
+    "plistlib",
+    "poplib",
+    "posix",
+    "posixpath",
+    "pprint",
+    "profile",
+    "pstats",
+    "pty",
+    "pwd",
+    "py_compile",
+    "pyclbr",
+    "pydoc",
+    "queue",
+    "quopri",
+    "random",
+    "re",
+    "readline",
+    "reprlib",
+    "resource",
+    "rlcompleter",
+    "runpy",
+    "sched",
+    "secrets",
+    "select",
+    "selectors",
+    "shelve",
+    "shlex",
+    "shutil",
+    "signal",
+    "site",
+    "smtpd",
+    "smtplib",
+    "sndhdr",
+    "socket",
+    "socketserver",
+    "sqlite3",
+    "ssl",
+    "stat",
+    "statistics",
+    "string",
+    "stringprep",
+    "struct",
+    "subprocess",
+    "sunau",
+    "sys",
+    "sysconfig",
+    "syslog",
+    "tabnanny",
+    "tarfile",
+    "tempfile",
+    "termios",
+    "test",
+    "textwrap",
+    "threading",
+    "time",
+    "timeit",
+    "tkinter",
+    "token",
+    "tokenize",
+    "trace",
+    "traceback",
+    "tracemalloc",
+    "tty",
+    "turtle",
+    "turtledemo",
+    "types",
+    "typing",
+    "unicodedata",
+    "unittest",
+    "urllib",
+    "uu",
+    "uuid",
+    "venv",
+    "warnings",
+    "wave",
+    "weakref",
+    "webbrowser",
+    "winreg",
+    "winsound",
+    "wsgiref",
+    "xdrlib",
+    "xml",
+    "xmlrpc",
+    "zipapp",
+    "zipfile",
+    "zipimport",
+    "zlib",
+    "zoneinfo",
 }
 
 
@@ -432,16 +581,24 @@ def _sort_imports_local(content: str) -> str:
         sorted_imports.extend(local)
 
     # Replace in original content
-    new_lines = lines[:import_block_start] + sorted_imports + lines[import_block_end + 1:]
+    new_lines = lines[:import_block_start] + sorted_imports + lines[import_block_end + 1 :]
     return "\n".join(new_lines)
 
 
 # ── Slash command handler ─────────────────────────────────────────────
 
 VALID_OPERATIONS = [
-    "extract-function", "rename", "inline", "extract-class",
-    "simplify", "dead-code", "sort-imports", "add-types",
-    "undo", "history", "list",
+    "extract-function",
+    "rename",
+    "inline",
+    "extract-class",
+    "simplify",
+    "dead-code",
+    "sort-imports",
+    "add-types",
+    "undo",
+    "history",
+    "list",
 ]
 
 

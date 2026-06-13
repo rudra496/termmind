@@ -38,7 +38,7 @@ def _ensure_snippets_dir() -> Path:
 
 def _snippet_path(name: str) -> Path:
     """Get the file path for a snippet."""
-    safe_name = re.sub(r'[^\w\-.]', '_', name)
+    safe_name = re.sub(r"[^\w\-.]", "_", name)
     return _ensure_snippets_dir() / f"{safe_name}.json"
 
 
@@ -66,20 +66,25 @@ def save_snippet(
     snippet = {
         "name": name,
         "description": description or (existing or {}).get("description", ""),
-        "language": language or (existing or {}).get("language", _detect_language(code or conversation_context)),
+        "language": language
+        or (existing or {}).get("language", _detect_language(code or conversation_context)),
         "code": code or (existing or {}).get("code", ""),
         "tags": tags or (existing or {}).get("tags", []),
         "created_date": (existing or {}).get("created_date", datetime.now().isoformat()),
         "modified_date": datetime.now().isoformat(),
         "usage_count": (existing or {}).get("usage_count", 0),
-        "conversation_context": conversation_context[:2000] if conversation_context else (existing or {}).get("conversation_context", ""),
+        "conversation_context": conversation_context[:2000]
+        if conversation_context
+        else (existing or {}).get("conversation_context", ""),
     }
 
     path.write_text(json.dumps(snippet, indent=2))
     return snippet
 
 
-def load_snippet(name: str, expand_templates: bool = True, ctx: Optional[dict[str, str]] = None) -> Optional[dict[str, Any]]:
+def load_snippet(
+    name: str, expand_templates: bool = True, ctx: Optional[dict[str, str]] = None
+) -> Optional[dict[str, Any]]:
     """Load a snippet by name."""
     path = _snippet_path(name)
     if not path.exists():
@@ -134,13 +139,15 @@ def search_snippets(query: str) -> list[dict[str, Any]]:
     for path in _list_snippet_files():
         try:
             snippet = json.loads(path.read_text())
-            searchable = " ".join([
-                snippet.get("name", ""),
-                snippet.get("description", ""),
-                snippet.get("language", ""),
-                " ".join(snippet.get("tags", [])),
-                snippet.get("code", "")[:500],
-            ]).lower()
+            searchable = " ".join(
+                [
+                    snippet.get("name", ""),
+                    snippet.get("description", ""),
+                    snippet.get("language", ""),
+                    " ".join(snippet.get("tags", [])),
+                    snippet.get("code", "")[:500],
+                ]
+            ).lower()
             if query_lower in searchable:
                 # Score based on match location
                 score = 0
@@ -210,12 +217,45 @@ def suggest_snippets(conversation: str, limit: int = 3) -> list[dict[str, Any]]:
         return []
 
     # Extract keywords from conversation
-    words = re.findall(r'\b\w{3,}\b', conversation.lower())
+    words = re.findall(r"\b\w{3,}\b", conversation.lower())
     # Remove common stop words
-    stop_words = {"the", "and", "for", "are", "but", "not", "you", "all", "can", "had",
-                  "her", "was", "one", "our", "out", "has", "have", "this", "that",
-                  "with", "from", "they", "been", "will", "each", "make", "like",
-                  "just", "over", "such", "take", "than", "them", "very", "some"}
+    stop_words = {
+        "the",
+        "and",
+        "for",
+        "are",
+        "but",
+        "not",
+        "you",
+        "all",
+        "can",
+        "had",
+        "her",
+        "was",
+        "one",
+        "our",
+        "out",
+        "has",
+        "have",
+        "this",
+        "that",
+        "with",
+        "from",
+        "they",
+        "been",
+        "will",
+        "each",
+        "make",
+        "like",
+        "just",
+        "over",
+        "such",
+        "take",
+        "than",
+        "them",
+        "very",
+        "some",
+    }
     keywords = [w for w in words if w not in stop_words]
 
     if not keywords:
@@ -226,14 +266,16 @@ def suggest_snippets(conversation: str, limit: int = 3) -> list[dict[str, Any]]:
     for path in _list_snippet_files():
         try:
             snippet = json.loads(path.read_text())
-            searchable = " ".join([
-                snippet.get("name", ""),
-                snippet.get("description", ""),
-                snippet.get("language", ""),
-                " ".join(snippet.get("tags", [])),
-                snippet.get("code", "")[:1000],
-            ]).lower()
-            searchable_words = set(re.findall(r'\b\w{3,}\b', searchable))
+            searchable = " ".join(
+                [
+                    snippet.get("name", ""),
+                    snippet.get("description", ""),
+                    snippet.get("language", ""),
+                    " ".join(snippet.get("tags", [])),
+                    snippet.get("code", "")[:1000],
+                ]
+            ).lower()
+            searchable_words = set(re.findall(r"\b\w{3,}\b", searchable))
             overlap = len(set(keywords) & searchable_words)
             if overlap > 0:
                 snippet["_score"] = overlap
@@ -251,9 +293,28 @@ def _detect_language(text: str) -> str:
         return "text"
     text_lower = text.lower()
     indicators = [
-        ("python", ["def ", "import ", "from ", "class ", "print(", "self.", "# ", "pip install", "pyproject.toml"]),
-        ("javascript", ["const ", "let ", "function ", "=>", "console.log", "require(", "module.exports"]),
-        ("typescript", ["interface ", ": string", ": number", "as ", "<T>", "npm install", "tsconfig"]),
+        (
+            "python",
+            [
+                "def ",
+                "import ",
+                "from ",
+                "class ",
+                "print(",
+                "self.",
+                "# ",
+                "pip install",
+                "pyproject.toml",
+            ],
+        ),
+        (
+            "javascript",
+            ["const ", "let ", "function ", "=>", "console.log", "require(", "module.exports"],
+        ),
+        (
+            "typescript",
+            ["interface ", ": string", ": number", "as ", "<T>", "npm install", "tsconfig"],
+        ),
         ("rust", ["fn ", "let mut", "impl ", "pub fn", "use std", "cargo "]),
         ("go", ["func ", "package ", "import (", "fmt.Println", "go func", "go mod"]),
         ("java", ["public class", "System.out", "private ", "protected ", "import java"]),
@@ -296,7 +357,9 @@ def cmd_snippet(rest: str, messages, client, console: Console, cwd: str, ctx_fil
 
     handler = handlers.get(sub)
     if not handler:
-        console.print("[error]Usage: /snippet <save|list|load|search|delete|export|import|suggest> [args][/error]")
+        console.print(
+            "[error]Usage: /snippet <save|list|load|search|delete|export|import|suggest> [args][/error]"
+        )
         return
     handler(arg1, arg2, messages, client, console, cwd, ctx_files)
 
@@ -316,7 +379,7 @@ def _snippet_save(name: str, description: str, messages, client, console, cwd, c
         content = msg.get("content", "")
         if "```" in content:
             # Extract last code block
-            blocks = re.findall(r'```(\w*)\n(.*?)```', content, re.DOTALL)
+            blocks = re.findall(r"```(\w*)\n(.*?)```", content, re.DOTALL)
             if blocks:
                 last_block = blocks[-1]
                 language = last_block[0] or _detect_language(last_block[1])
@@ -353,7 +416,9 @@ def _snippet_list(rest: str, _arg2, messages, client, console, cwd, ctx_files):
     snippets = list_snippets(tag=tag)
 
     if not snippets:
-        console.print("[system]No snippets saved yet. Use /snippet save <name> to create one.[/system]")
+        console.print(
+            "[system]No snippets saved yet. Use /snippet save <name> to create one.[/system]"
+        )
         return
 
     table = Table(title="📦 Snippets", border_style="dim")
@@ -400,7 +465,12 @@ def _snippet_load(name: str, _arg2, messages, client, console, cwd, ctx_files):
 
     full_content = "\n\n".join(content_parts)
     messages.append({"role": "user", "content": full_content})
-    messages.append({"role": "assistant", "content": f"Snippet '{name}' loaded into context. How can I help you with it?"})
+    messages.append(
+        {
+            "role": "assistant",
+            "content": f"Snippet '{name}' loaded into context. How can I help you with it?",
+        }
+    )
 
     what = "code" if snippet.get("code") else "conversation context"
     console.print(f"[success]📂 Loaded {what} from snippet: {name}[/success]")
@@ -426,7 +496,9 @@ def _snippet_search(query: str, _arg2, messages, client, console, cwd, ctx_files
         lang = s.get("language", "")
         tags = ", ".join(s.get("tags", []))
         score = s.get("_score", 0)
-        console.print(f"  [cyan]• {name}[/cyan] [{lang}] — {desc} [dim]({tags}) score={score}[/dim]")
+        console.print(
+            f"  [cyan]• {name}[/cyan] [{lang}] — {desc} [dim]({tags}) score={score}[/dim]"
+        )
 
 
 def _snippet_delete(name: str, _arg2, messages, client, console, cwd, ctx_files):

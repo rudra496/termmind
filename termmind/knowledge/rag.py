@@ -1,15 +1,19 @@
 """Knowledge base with RAG pipeline."""
 
+import contextlib
 from pathlib import Path
-from typing import Any, Optional, Callable
+from typing import Any, Callable, Optional
 
 from termmind.api import APIClient
+
 
 def dot_product(v1: list[float], v2: list[float]) -> float:
     return sum(x * y for x, y in zip(v1, v2))
 
+
 def magnitude(v: list[float]) -> float:
     return sum(x * x for x in v) ** 0.5
+
 
 def cosine_similarity(v1: list[float], v2: list[float]) -> float:
     m1 = magnitude(v1)
@@ -50,28 +54,34 @@ class VectorStore:
         self.collection_name = collection_name
         self._documents: dict[str, Document] = {}
 
-    def add(self, doc_id: str, document: Document, embed_fn: Optional[Callable[[str], list[float]]] = None) -> None:
+    def add(
+        self,
+        doc_id: str,
+        document: Document,
+        embed_fn: Optional[Callable[[str], list[float]]] = None,
+    ) -> None:
         """Add a document to the store, optionally embedding it."""
         if embed_fn and not document.embedding:
-            try:
+            with contextlib.suppress(Exception):
                 document.embedding = embed_fn(document.content)
-            except Exception:
-                pass
         self._documents[doc_id] = document
 
-    def search(self, query: str, top_k: int = 5, embed_fn: Optional[Callable[[str], list[float]]] = None) -> list[Document]:
+    def search(
+        self, query: str, top_k: int = 5, embed_fn: Optional[Callable[[str], list[float]]] = None
+    ) -> list[Document]:
         """Search for relevant documents using semantic embeddings or term matching fallback."""
         query_embedding = None
         if embed_fn:
-            try:
+            with contextlib.suppress(Exception):
                 query_embedding = embed_fn(query)
-            except Exception:
-                pass
 
         scored = []
         use_semantic = isinstance(query_embedding, list) and len(query_embedding) > 0
         if use_semantic:
-            has_doc_embeddings = any(isinstance(doc.embedding, list) and len(doc.embedding) > 0 for doc in self._documents.values())
+            has_doc_embeddings = any(
+                isinstance(doc.embedding, list) and len(doc.embedding) > 0
+                for doc in self._documents.values()
+            )
             if not has_doc_embeddings:
                 use_semantic = False
 
@@ -120,18 +130,20 @@ class VectorStore:
     def save(self, path: str) -> None:
         """Save store to JSON."""
         import json
+
         data = {
             "collection": self.collection_name,
             "documents": {
                 k: {"content": v.content, "metadata": v.metadata, "embedding": v.embedding}
                 for k, v in self._documents.items()
-            }
+            },
         }
         Path(path).write_text(json.dumps(data, indent=2))
 
     def load(self, path: str) -> None:
         """Load store from JSON."""
         import json
+
         data = json.loads(Path(path).read_text())
         self.collection_name = data.get("collection", self.collection_name)
         self._documents = {}
@@ -194,10 +206,9 @@ class RAGPipeline:
         if not relevant_docs:
             return self.client.chat([{"role": "user", "content": question}])
 
-        context = "\n\n".join([
-            f"Document {i+1}:\n{doc.content[:1000]}"
-            for i, doc in enumerate(relevant_docs)
-        ])
+        context = "\n\n".join(
+            [f"Document {i + 1}:\n{doc.content[:1000]}" for i, doc in enumerate(relevant_docs)]
+        )
 
         prompt = f"""Use the following context to answer the question.
 

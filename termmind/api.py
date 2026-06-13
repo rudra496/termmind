@@ -106,31 +106,31 @@ class APIClient:
         url = f"{self.base_url}/chat/completions"
         headers = self._headers()
         try:
-            with httpx.Client(timeout=_TIMEOUT) as client, \
-                    client.stream("POST", url, json=body, headers=headers) as resp:
-                    if resp.status_code != 200:
-                        err = resp.read().decode(errors="replace")
-                        raise APIError(f"API error {resp.status_code}: {err}", resp.status_code)
-                    for line in resp.iter_lines():
-                        if not line or not line.startswith("data: "):
-                            continue
-                        data = line[6:]
-                        if data.strip() == "[DONE]":
-                            break
-                        try:
-                            parsed = json.loads(data)
-                            delta = parsed.get("choices", [{}])[0].get("delta", {})
-                            content = delta.get("content", "")
-                            if content:
-                                yield content
-                        except json.JSONDecodeError:
-                            continue
+            with (
+                httpx.Client(timeout=_TIMEOUT) as client,
+                client.stream("POST", url, json=body, headers=headers) as resp,
+            ):
+                if resp.status_code != 200:
+                    err = resp.read().decode(errors="replace")
+                    raise APIError(f"API error {resp.status_code}: {err}", resp.status_code)
+                for line in resp.iter_lines():
+                    if not line or not line.startswith("data: "):
+                        continue
+                    data = line[6:]
+                    if data.strip() == "[DONE]":
+                        break
+                    try:
+                        parsed = json.loads(data)
+                        delta = parsed.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            yield content
+                    except json.JSONDecodeError:
+                        continue
         except APIError:
             raise
         except httpx.ConnectError:
-            raise APIError(
-                f"Cannot connect to {self.base_url}. Is the service running?"
-            ) from None
+            raise APIError(f"Cannot connect to {self.base_url}. Is the service running?") from None
         except httpx.TimeoutException:
             raise APIError("Request timed out.") from None
 
@@ -155,7 +155,7 @@ class APIClient:
             except (httpx.ConnectError, httpx.TimeoutException) as e:
                 last_err = e
                 if attempt < retries - 1:
-                    time.sleep(2 ** attempt)
+                    time.sleep(2**attempt)
                 continue
             except APIError:
                 raise
@@ -177,7 +177,7 @@ class APIClient:
         """Generate vector embedding for a given text using the provider's /embeddings endpoint."""
         url = f"{self.base_url}/embeddings"
         headers = self._headers()
-        
+
         # Determine the model to use for embeddings based on provider
         model = self.model
         if self.provider == "openai":
@@ -188,12 +188,9 @@ class APIClient:
             model = "togethercomputer/mxbai-embed-large-v1"
         elif self.provider == "cohere":
             model = "embed-english-v3.0"
-            
-        body = {
-            "model": model,
-            "input": text
-        }
-        
+
+        body = {"model": model, "input": text}
+
         try:
             resp = _get_shared_client().post(url, json=body, headers=headers, timeout=10.0)
             if resp.status_code == 200:

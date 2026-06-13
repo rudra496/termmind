@@ -1,19 +1,25 @@
 """Tests for configuration management."""
 
-import json
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from termmind.config import load_config, save_config, update_config, get_provider_info, DEFAULT_CONFIG
+from termmind.config import (
+    DEFAULT_CONFIG,
+    get_provider_info,
+    load_config,
+    save_config,
+    update_config,
+)
 
 
 @pytest.fixture
 def config_dir(tmp_dir):
-    with patch("termmind.config.CONFIG_DIR", tmp_dir / ".termmind"), \
-         patch("termmind.config.SESSIONS_DIR", tmp_dir / ".termmind" / "sessions"), \
-         patch("termmind.config.CONFIG_FILE", tmp_dir / ".termmind" / "config.json"):
+    with (
+        patch("termmind.config.CONFIG_DIR", tmp_dir / ".termmind"),
+        patch("termmind.config.SESSIONS_DIR", tmp_dir / ".termmind" / "sessions"),
+        patch("termmind.config.CONFIG_FILE", tmp_dir / ".termmind" / "config.json"),
+    ):
         yield tmp_dir / ".termmind"
 
 

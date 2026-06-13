@@ -39,26 +39,101 @@ BANNER = r"""
 """
 
 SLASH_COMMANDS = [
-    "/edit", "/run", "/files", "/add", "/remove", "/search", "/grep", "/tree",
-    "/clear", "/save", "/load", "/sessions", "/model", "/models", "/provider",
-    "/providers", "/cost", "/theme", "/themes", "/undo", "/diff", "/status",
-    "/git", "/export", "/compact", "/system", "/help", "/version", "/quit",
-    "/index", "/symbols", "/capabilities",
-    "/snippet", "/snippets", "/snippet save", "/snippet list", "/snippet load",
-    "/snippet search", "/snippet delete", "/snippet export", "/snippet import",
+    "/edit",
+    "/run",
+    "/files",
+    "/add",
+    "/remove",
+    "/search",
+    "/grep",
+    "/tree",
+    "/clear",
+    "/save",
+    "/load",
+    "/sessions",
+    "/model",
+    "/models",
+    "/provider",
+    "/providers",
+    "/cost",
+    "/theme",
+    "/themes",
+    "/undo",
+    "/diff",
+    "/status",
+    "/git",
+    "/export",
+    "/compact",
+    "/system",
+    "/help",
+    "/version",
+    "/quit",
+    "/index",
+    "/symbols",
+    "/capabilities",
+    "/snippet",
+    "/snippets",
+    "/snippet save",
+    "/snippet list",
+    "/snippet load",
+    "/snippet search",
+    "/snippet delete",
+    "/snippet export",
+    "/snippet import",
     "/snippet suggest",
-    "/template", "/templates", "/template list", "/template use",
-    "/refactor", "/refactor extract-function", "/refactor rename", "/refactor inline",
-    "/refactor extract-class", "/refactor simplify", "/refactor dead-code",
-    "/refactor sort-imports", "/refactor add-types", "/refactor undo", "/refactor history",
-    "/record", "/record start", "/record stop", "/record list", "/record replay", "/record export",
-    "/voice", "/voice on", "/voice off", "/voice speed", "/voice lang",
-    "/eli5", "/eli5 mode on", "/eli5 mode off", "/eli5 status",
-    "/cost optimize", "/cost history", "/cost budget", "/cost compare", "/cost save",
-    "/scan", "/scan file", "/scan dir", "/scan ai",
-    "/generate", "/generate api", "/generate class", "/generate cli", "/generate test",
-    "/generate docker", "/generate config", "/generate script", "/generate regex",
-    "/prompt", "/prompt list", "/prompt use", "/prompt save", "/prompt categories",
+    "/template",
+    "/templates",
+    "/template list",
+    "/template use",
+    "/refactor",
+    "/refactor extract-function",
+    "/refactor rename",
+    "/refactor inline",
+    "/refactor extract-class",
+    "/refactor simplify",
+    "/refactor dead-code",
+    "/refactor sort-imports",
+    "/refactor add-types",
+    "/refactor undo",
+    "/refactor history",
+    "/record",
+    "/record start",
+    "/record stop",
+    "/record list",
+    "/record replay",
+    "/record export",
+    "/voice",
+    "/voice on",
+    "/voice off",
+    "/voice speed",
+    "/voice lang",
+    "/eli5",
+    "/eli5 mode on",
+    "/eli5 mode off",
+    "/eli5 status",
+    "/cost optimize",
+    "/cost history",
+    "/cost budget",
+    "/cost compare",
+    "/cost save",
+    "/scan",
+    "/scan file",
+    "/scan dir",
+    "/scan ai",
+    "/generate",
+    "/generate api",
+    "/generate class",
+    "/generate cli",
+    "/generate test",
+    "/generate docker",
+    "/generate config",
+    "/generate script",
+    "/generate regex",
+    "/prompt",
+    "/prompt list",
+    "/prompt use",
+    "/prompt save",
+    "/prompt categories",
     "/suggest",
 ]
 
@@ -91,7 +166,9 @@ def _get_key_bindings():
     return kb
 
 
-def _stream_response(client: APIClient, messages: list[dict], console: Console, system_prompt: Optional[str] = None) -> str:
+def _stream_response(
+    client: APIClient, messages: list[dict], console: Console, system_prompt: Optional[str] = None
+) -> str:
     """Stream response and render markdown. Returns full response text."""
     full = ""
     console.print()
@@ -119,9 +196,15 @@ def _interactive_init() -> dict:
     providers = list(PROVIDER_PRESETS.keys())
     for i, p in enumerate(providers):
         info = PROVIDER_PRESETS[p]
-        free = "[green]free[/green]" if info["cost_per_1k_input"] == 0 else f"${info['cost_per_1k_input']}/1k"
+        free = (
+            "[green]free[/green]"
+            if info["cost_per_1k_input"] == 0
+            else f"${info['cost_per_1k_input']}/1k"
+        )
         key_req = "[dim](no key needed)[/dim]" if not info["requires_key"] else ""
-        console.print(f"  [cyan]{i+1}[/cyan]. [command]{p}[/command] — {info['default_model']} {free} {key_req}")
+        console.print(
+            f"  [cyan]{i + 1}[/cyan]. [command]{p}[/command] — {info['default_model']} {free} {key_req}"
+        )
 
     choice = click.prompt("\nProvider number", default="6", type=int) - 1
     choice = max(0, min(choice, len(providers) - 1))
@@ -136,6 +219,7 @@ def _interactive_init() -> dict:
         # Test connection
         console.print("[system]Testing connection...[/system]")
         from .providers import get_provider
+
         try:
             p_instance = get_provider(provider, api_key=api_key, base_url=info["base_url"])
             if p_instance.validate_connection():
@@ -167,8 +251,8 @@ def _interactive_init() -> dict:
         "confirm_runs": True,
         "history_size": 100,
         "system_prompt": "You are TermMind, a helpful AI assistant in the terminal. "
-            "You help with coding, file operations, and general questions. "
-            "Be concise and practical. When showing code, use markdown code blocks with language hints.",
+        "You help with coding, file operations, and general questions. "
+        "Be concise and practical. When showing code, use markdown code blocks with language hints.",
     }
     save_config(cfg)
     console.print("\n[success]✅ Configuration saved to ~/.termmind/config.json[/success]")
@@ -199,13 +283,17 @@ def ask(question: Optional[str], provider: Optional[str], model: Optional[str]):
     """Ask a question (one-shot, no session)."""
     if not question:
         console = _get_console()
-        console.print("[error]Usage: termmind ask \"your question\"[/error]")
+        console.print('[error]Usage: termmind ask "your question"[/error]')
         return
 
     cfg = load_config()
-    if not cfg.get("api_key") and PROVIDER_PRESETS.get(cfg.get("provider"), {}).get("requires_key", True):
+    if not cfg.get("api_key") and PROVIDER_PRESETS.get(cfg.get("provider"), {}).get(
+        "requires_key", True
+    ):
         console = _get_console()
-        console.print("[warning]No API key configured. Run [command]termmind init[/command] first.[/warning]")
+        console.print(
+            "[warning]No API key configured. Run [command]termmind init[/command] first.[/warning]"
+        )
         return
 
     console = _get_console()
@@ -227,7 +315,9 @@ def ask(question: Optional[str], provider: Optional[str], model: Optional[str]):
     elapsed = time.time() - start
     tokens = client.total_tokens()
     if tokens:
-        console.print(f"[cost]⚡ {tokens:,} tokens • {elapsed:.1f}s • ${client.get_cost():.6f}[/cost]")
+        console.print(
+            f"[cost]⚡ {tokens:,} tokens • {elapsed:.1f}s • ${client.get_cost():.6f}[/cost]"
+        )
 
 
 @main.command()
@@ -251,7 +341,9 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
     console.print(f"[dim]Provider: {p} | Model: {m} | CWD: {os.getcwd()}[/dim]")
     if git_is_repo("."):
         console.print("[dim]Git: detected ✓[/dim]")
-    console.print("[dim]Type /help for commands • Shift+Enter for multiline • Ctrl+C to quit[/dim]\n")
+    console.print(
+        "[dim]Type /help for commands • Shift+Enter for multiline • Ctrl+C to quit[/dim]\n"
+    )
 
     client = APIClient(
         provider=provider or cfg.get("provider"),
@@ -268,6 +360,7 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
 
     # Initialize plugins
     from .plugins import discover_plugins
+
     plugins = discover_plugins()
     for plugin in plugins:
         with contextlib.suppress(Exception):
@@ -299,7 +392,15 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
 
         if user_input.startswith("/"):
             try:
-                handle_command(user_input[1:], user_input[1:], messages, client, console, os.getcwd(), context_files)
+                handle_command(
+                    user_input[1:],
+                    user_input[1:],
+                    messages,
+                    client,
+                    console,
+                    os.getcwd(),
+                    context_files,
+                )
             except SystemExit:
                 raise
             except Exception as e:
@@ -334,16 +435,26 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
 
         tokens = client.total_tokens()
         if tokens:
-            console.print(f"[cost]⚡ {tokens:,} tokens • {elapsed:.1f}s • ${client.get_cost():.6f}[/cost]")
+            console.print(
+                f"[cost]⚡ {tokens:,} tokens • {elapsed:.1f}s • ${client.get_cost():.6f}[/cost]"
+            )
 
     # Auto-save on exit
     if messages:
         from .config import SESSIONS_DIR
         from .sessions import save_session as _save
+
         SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
         name = time.strftime("%Y-%m-%d_%H-%M")
-        _save(name, messages[-40:], client.provider, client.model,
-              client.get_cost(), client.total_tokens(), context_files)
+        _save(
+            name,
+            messages[-40:],
+            client.provider,
+            client.model,
+            client.get_cost(),
+            client.total_tokens(),
+            context_files,
+        )
 
 
 @main.command()
@@ -363,7 +474,11 @@ def edit(filepath: str, instruction: Optional[str], provider: Optional[str], mod
     if not instruction:
         instruction = click.prompt("[info]Edit instruction[/info]")
 
-    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    client = APIClient(
+        provider=provider or cfg.get("provider"),
+        api_key=cfg.get("api_key"),
+        model=model or cfg.get("model"),
+    )
 
     prompt = f"""You are a code editor. Apply the requested edit to the file below.
 Output ONLY the complete new file content. No explanations, no markdown fences.
@@ -400,7 +515,11 @@ def review(path: str, provider: Optional[str], model: Optional[str]):
     """Review code in a directory or file."""
     cfg = load_config()
     console = _get_console()
-    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    client = APIClient(
+        provider=provider or cfg.get("provider"),
+        api_key=cfg.get("api_key"),
+        model=model or cfg.get("model"),
+    )
 
     target = str(Path(path).resolve())
     p = Path(target)
@@ -448,7 +567,11 @@ def explain(filepath: str, provider: Optional[str], model: Optional[str]):
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
         return
-    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    client = APIClient(
+        provider=provider or cfg.get("provider"),
+        api_key=cfg.get("api_key"),
+        model=model or cfg.get("model"),
+    )
     prompt = f"""Explain this file clearly and concisely:
 - What does it do?
 - Key functions/classes and their purpose
@@ -474,7 +597,11 @@ def test(filepath: str, provider: Optional[str], model: Optional[str], framework
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
         return
-    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    client = APIClient(
+        provider=provider or cfg.get("provider"),
+        api_key=cfg.get("api_key"),
+        model=model or cfg.get("model"),
+    )
     prompt = f"""Generate comprehensive tests using {framework} for this file.
 Output ONLY the test code, no explanations.
 
@@ -508,7 +635,11 @@ def refactor(filepath: str, provider: Optional[str], model: Optional[str]):
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
         return
-    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    client = APIClient(
+        provider=provider or cfg.get("provider"),
+        api_key=cfg.get("api_key"),
+        model=model or cfg.get("model"),
+    )
     prompt = f"""Suggest and implement refactoring for this file. Focus on:
 - DRY principle (remove duplication)
 - Better naming
@@ -543,7 +674,11 @@ def docstring(filepath: str, provider: Optional[str], model: Optional[str]):
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
         return
-    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    client = APIClient(
+        provider=provider or cfg.get("provider"),
+        api_key=cfg.get("api_key"),
+        model=model or cfg.get("model"),
+    )
     prompt = f"""Add comprehensive Google-style docstrings to all functions, classes, and methods in this file.
 Output ONLY the complete file with docstrings added. Keep all existing code unchanged.
 
@@ -576,7 +711,11 @@ def debug(filepath: str, provider: Optional[str], model: Optional[str]):
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
         return
-    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
+    client = APIClient(
+        provider=provider or cfg.get("provider"),
+        api_key=cfg.get("api_key"),
+        model=model or cfg.get("model"),
+    )
     prompt = f"""Debug this file. Identify:
 - Potential bugs and errors
 - Edge cases not handled
@@ -604,14 +743,21 @@ def translate(filepath: str, lang: str, provider: Optional[str], model: Optional
     if content is None:
         console.print(f"[error]File not found: {filepath}[/error]")
         return
-    client = APIClient(provider=provider or cfg.get("provider"), api_key=cfg.get("api_key"), model=model or cfg.get("model"))
-    prompt = f"""Translate all comments and docstrings in this file to {lang}.
+    client = APIClient(
+        provider=provider or cfg.get("provider"),
+        api_key=cfg.get("api_key"),
+        model=model or cfg.get("model"),
+    )
+    prompt = (
+        f"""Translate all comments and docstrings in this file to {lang}.
 Keep all code, variable names, and structure exactly the same.
-Only translate text in comments (# ...) and docstrings ("""  """).
+Only translate text in comments (# ...) and docstrings ("""
+        """).
 Output the complete file.
 
 File: {filepath}
 ```\n{content}\n```"""
+    )
     console.print(f"[system]🤖 Translating {filepath} to {lang}...[/system]\n")
     response = _stream_response(client, [{"role": "user", "content": prompt}], console)
     if response:
@@ -631,11 +777,13 @@ def show_history():
     """Show saved chat sessions."""
     console = _get_console()
     from .sessions import list_sessions
+
     sessions = list_sessions()
     if not sessions:
         console.print("[system]No saved sessions.[/system]")
         return
     from rich.table import Table
+
     table = Table(title="Session History", border_style="dim")
     table.add_column("Name", style="file_path")
     table.add_column("Provider")
@@ -644,8 +792,14 @@ def show_history():
     table.add_column("Tokens")
     table.add_column("Saved")
     for s in sessions[:20]:
-        table.add_row(s["name"], s["provider"], s["model"], str(s["messages"]),
-                      f"{s['tokens']:,}", s["saved_at"][:16])
+        table.add_row(
+            s["name"],
+            s["provider"],
+            s["model"],
+            str(s["messages"]),
+            f"{s['tokens']:,}",
+            s["saved_at"][:16],
+        )
     console.print(table)
 
 
@@ -662,10 +816,13 @@ def config():
 
 
 @main.command()
-@click.argument("action", default="install", type=click.Choice(["install", "generate", "capabilities"]))
+@click.argument(
+    "action", default="install", type=click.Choice(["install", "generate", "capabilities"])
+)
 def completions(action: str):
     """Manage shell completions."""
     from .shell import generate_all_completions, get_capability_report, install_completions
+
     if action == "install":
         success, msg = install_completions()
         if success:
@@ -689,17 +846,20 @@ def completions(action: str):
 def index(path: str, force: bool, query: str):
     """Build or query the code context index."""
     from .memory import build_index, get_context_for_query, get_project_summary
+
     console = _get_console()
     if query:
         ctx = get_context_for_query(path, query)
         if ctx:
             from rich.markdown import Markdown
+
             console.print(Markdown(ctx))
         else:
             console.print("[dim]No matching symbols found.[/dim]")
         return
     console.print("[system]Building code index...[/system]")
     import time
+
     start = time.time()
     idx = build_index(path, force=force)
     elapsed = time.time() - start
@@ -719,10 +879,13 @@ def index(path: str, force: bool, query: str):
 @main.command()
 @click.argument("path", default=".")
 @click.option("--pattern", "-p", default="", help="Regex pattern to filter names")
-@click.option("--type", "sym_type", default="all", type=click.Choice(["all", "functions", "classes"]))
+@click.option(
+    "--type", "sym_type", default="all", type=click.Choice(["all", "functions", "classes"])
+)
 def symbols(path: str, pattern: str, sym_type: str):
     """List functions and classes in the project index."""
     from .memory import query_classes, query_functions
+
     console = _get_console()
     table = Table(title="Symbols", border_style="dim")
     table.add_column("Name", style="cyan")
@@ -733,13 +896,23 @@ def symbols(path: str, pattern: str, sym_type: str):
 
     if sym_type in ("all", "functions"):
         for func in query_functions(path, pattern):
-            table.add_row(func["name"], "func", func.get("signature", ""),
-                          func.get("file", ""), str(func.get("line", 0)))
+            table.add_row(
+                func["name"],
+                "func",
+                func.get("signature", ""),
+                func.get("file", ""),
+                str(func.get("line", 0)),
+            )
     if sym_type in ("all", "classes"):
         for cls in query_classes(path, pattern):
             bases = ", ".join(cls.get("bases", []))
-            table.add_row(cls["name"], "class", f"class {cls['name']}({bases})",
-                          cls.get("file", ""), str(cls.get("line", 0)))
+            table.add_row(
+                cls["name"],
+                "class",
+                f"class {cls['name']}({bases})",
+                cls.get("file", ""),
+                str(cls.get("line", 0)),
+            )
     console.print(table)
 
 
@@ -750,6 +923,7 @@ def doctors():
     console.print("[bold]🏥 TermMind Health Check[/bold]\n")
 
     import importlib
+
     checks = [
         ("Python", lambda: f"{sys.version}"),
         ("click", lambda: importlib.import_module("click").__version__),
@@ -786,11 +960,17 @@ def doctors():
 
     # Connection check
     from .providers import get_provider
+
     try:
-        p = get_provider(provider, api_key=cfg.get("api_key", ""),
-                         base_url=PROVIDER_PRESETS.get(provider, {}).get("base_url", ""))
+        p = get_provider(
+            provider,
+            api_key=cfg.get("api_key", ""),
+            base_url=PROVIDER_PRESETS.get(provider, {}).get("base_url", ""),
+        )
         if p.validate_connection(timeout=5):
-            table.add_row("Provider connection", "[success]✅[/success]", f"{provider} is reachable")
+            table.add_row(
+                "Provider connection", "[success]✅[/success]", f"{provider} is reachable"
+            )
         else:
             table.add_row("Provider connection", "[error]❌[/error]", f"{provider} unreachable")
     except Exception as e:
@@ -807,6 +987,7 @@ def doctors():
 def scan(path: str, provider: Optional[str], model: Optional[str], ai: bool):
     """Scan code for security vulnerabilities."""
     from .security import ai_security_review, scan_directory, scan_file
+
     cfg = load_config()
     console = _get_console()
     target = str(Path(path).resolve())
@@ -836,6 +1017,7 @@ def scan(path: str, provider: Optional[str], model: Optional[str], ai: bool):
 
     # Display results
     from .security import ScanResult
+
     if p.is_file():
         result = ScanResult(files_scanned=1, issues=issues)
 
@@ -854,7 +1036,9 @@ def scan(path: str, provider: Optional[str], model: Optional[str], ai: bool):
     if issues:
         console.print()
         for issue in issues[:20]:
-            sev_color = {"critical": "red", "high": "yellow", "medium": "cyan", "low": "dim"}.get(issue.severity, "dim")
+            sev_color = {"critical": "red", "high": "yellow", "medium": "cyan", "low": "dim"}.get(
+                issue.severity, "dim"
+            )
             console.print(f"  [{sev_color}][{issue.severity.upper()}][/{sev_color}] {issue.title}")
             console.print(f"    [file_path]{issue.file}:{issue.line}[/file_path]")
             console.print(f"    [dim]{issue.code_snippet[:80]}[/dim]")
@@ -870,10 +1054,17 @@ def scan(path: str, provider: Optional[str], model: Optional[str], ai: bool):
 @click.option("--output", "-o", default="", help="Output file path")
 @click.option("--provider", "-p", help="Override provider")
 @click.option("--model", "-m", help="Override model")
-def generate(template_type: str, description: Optional[str], framework: str, output: str,
-             provider: Optional[str], model: Optional[str]):
+def generate(
+    template_type: str,
+    description: Optional[str],
+    framework: str,
+    output: str,
+    provider: Optional[str],
+    model: Optional[str],
+):
     """Generate code from a description using AI."""
     from .codegen import generate_and_save, generate_code, list_template_types
+
     cfg = load_config()
     console = _get_console()
 
@@ -881,7 +1072,9 @@ def generate(template_type: str, description: Optional[str], framework: str, out
         console.print("[bold]Available generation templates:[/bold]")
         for t in list_template_types():
             console.print(f"  [cyan]•[/cyan] {t}")
-        console.print("\nUsage: [command]termmind generate <type> \"description\" [--framework X] [--output file][/command]")
+        console.print(
+            '\nUsage: [command]termmind generate <type> "description" [--framework X] [--output file][/command]'
+        )
         return
 
     client = APIClient(
@@ -941,6 +1134,7 @@ Input:
 def prompts_cmd(action: str, name: Optional[str]):
     """Manage prompt templates."""
     from .promptlib import get_template, list_categories, list_templates
+
     console = _get_console()
 
     if action == "list":
@@ -970,13 +1164,13 @@ def prompts_cmd(action: str, name: Optional[str]):
         console.print("Usage: termmind prompts [list|categories|use <name>]")
 
 
-
 @main.command(name="webui")
 @click.option("--port", "-p", default=8080, type=int, help="Port to run the Web UI on")
 @click.option("--no-browser", is_flag=True, help="Disable auto-opening the browser")
 def webui_cmd(port: int, no_browser: bool):
     """Start the local Web UI console dashboard."""
     from .webui import start_webui
+
     open_browser = not no_browser
     start_webui(port=port, open_browser=open_browser)
 

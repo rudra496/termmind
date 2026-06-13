@@ -22,7 +22,7 @@ def save_session(
 ) -> Path:
     """Save a chat session to disk. Returns the session file path."""
     SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
-    safe_name = re.sub(r'[^\w\-]', '_', name)
+    safe_name = re.sub(r"[^\w\-]", "_", name)
     session = {
         "name": safe_name,
         "provider": provider,
@@ -42,7 +42,7 @@ def save_session(
 
 def load_session(name: str) -> Optional[dict[str, Any]]:
     """Load a session by name. Returns session dict or None."""
-    safe_name = re.sub(r'[^\w\-]', '_', name)
+    safe_name = re.sub(r"[^\w\-]", "_", name)
     path = SESSIONS_DIR / f"{safe_name}.json"
     if not path.exists():
         return None
@@ -66,15 +66,17 @@ def list_sessions(search: Optional[str] = None) -> list[dict[str, Any]]:
                 haystack = f"{data.get('name', '')} {data.get('provider', '')} {data.get('model', '')}".lower()
                 if search_lower not in haystack:
                     continue
-            sessions.append({
-                "name": data.get("name", path.stem),
-                "provider": data.get("provider", "?"),
-                "model": data.get("model", "?"),
-                "messages": len(data.get("messages", [])),
-                "cost": data.get("cost", 0.0),
-                "tokens": data.get("tokens", 0),
-                "saved_at": data.get("saved_at", ""),
-            })
+            sessions.append(
+                {
+                    "name": data.get("name", path.stem),
+                    "provider": data.get("provider", "?"),
+                    "model": data.get("model", "?"),
+                    "messages": len(data.get("messages", [])),
+                    "cost": data.get("cost", 0.0),
+                    "tokens": data.get("tokens", 0),
+                    "saved_at": data.get("saved_at", ""),
+                }
+            )
         except (json.JSONDecodeError, OSError):
             continue
     return sessions
@@ -82,7 +84,7 @@ def list_sessions(search: Optional[str] = None) -> list[dict[str, Any]]:
 
 def delete_session(name: str) -> bool:
     """Delete a session. Returns True if deleted."""
-    safe_name = re.sub(r'[^\w\-]', '_', name)
+    safe_name = re.sub(r"[^\w\-]", "_", name)
     path = SESSIONS_DIR / f"{safe_name}.json"
     if path.exists():
         path.unlink()

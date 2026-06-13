@@ -28,9 +28,21 @@ def suggest_files(query: str, directory: str = ".", max_results: int = 10) -> li
     try:
         for root, dirs, files in os.walk(directory):
             # Skip hidden and common non-useful dirs
-            dirs[:] = [d for d in dirs if not d.startswith(".") and d not in {
-                "node_modules", "__pycache__", ".git", "venv", ".venv", "dist", "build",
-            }]
+            dirs[:] = [
+                d
+                for d in dirs
+                if not d.startswith(".")
+                and d
+                not in {
+                    "node_modules",
+                    "__pycache__",
+                    ".git",
+                    "venv",
+                    ".venv",
+                    "dist",
+                    "build",
+                }
+            ]
             depth = root.replace(directory, "").count(os.sep)
             if depth > 5:
                 dirs.clear()
@@ -129,84 +141,119 @@ def suggest_context_actions(message: str) -> list[dict[str, str]]:
     # File-related suggestions
     file_mentions = re.findall(
         r"""[\w./\-]+\.(?:py|js|ts|go|rs|java|rb|c|cpp|json|yaml|yml|toml|md)""",
-        message, re.IGNORECASE
+        message,
+        re.IGNORECASE,
     )
 
     if any(kw in msg_lower for kw in ["review", "check", "audit", "analyze"]) and file_mentions:
-        suggestions.append({
-            "action": "/review",
-            "args": file_mentions[0],
-            "description": f"Review {file_mentions[0]}",
-        })
+        suggestions.append(
+            {
+                "action": "/review",
+                "args": file_mentions[0],
+                "description": f"Review {file_mentions[0]}",
+            }
+        )
 
-    if any(kw in msg_lower for kw in ["test", "tests", "testing", "unittest", "pytest"]) and file_mentions:
-        suggestions.append({
-            "action": "/test",
-            "args": file_mentions[0],
-            "description": f"Generate tests for {file_mentions[0]}",
-        })
+    if (
+        any(kw in msg_lower for kw in ["test", "tests", "testing", "unittest", "pytest"])
+        and file_mentions
+    ):
+        suggestions.append(
+            {
+                "action": "/test",
+                "args": file_mentions[0],
+                "description": f"Generate tests for {file_mentions[0]}",
+            }
+        )
 
-    if any(kw in msg_lower for kw in ["explain", "what does", "how does", "understand"]) and file_mentions:
-        suggestions.append({
-            "action": "/explain",
-            "args": file_mentions[0],
-            "description": f"Explain {file_mentions[0]}",
-        })
+    if (
+        any(kw in msg_lower for kw in ["explain", "what does", "how does", "understand"])
+        and file_mentions
+    ):
+        suggestions.append(
+            {
+                "action": "/explain",
+                "args": file_mentions[0],
+                "description": f"Explain {file_mentions[0]}",
+            }
+        )
 
-    if any(kw in msg_lower for kw in ["edit", "modify", "change", "update", "fix", "refactor"]) and file_mentions:
-        suggestions.append({
-            "action": "/edit",
-            "args": f"{file_mentions[0]} {message}",
-            "description": f"Edit {file_mentions[0]}",
-        })
+    if (
+        any(kw in msg_lower for kw in ["edit", "modify", "change", "update", "fix", "refactor"])
+        and file_mentions
+    ):
+        suggestions.append(
+            {
+                "action": "/edit",
+                "args": f"{file_mentions[0]} {message}",
+                "description": f"Edit {file_mentions[0]}",
+            }
+        )
 
-    if any(kw in msg_lower for kw in ["debug", "error", "bug", "broken", "failing"]) and file_mentions:
-        suggestions.append({
-            "action": "/debug",
-            "args": file_mentions[0],
-            "description": f"Debug {file_mentions[0]}",
-        })
+    if (
+        any(kw in msg_lower for kw in ["debug", "error", "bug", "broken", "failing"])
+        and file_mentions
+    ):
+        suggestions.append(
+            {
+                "action": "/debug",
+                "args": file_mentions[0],
+                "description": f"Debug {file_mentions[0]}",
+            }
+        )
 
     if any(kw in msg_lower for kw in ["security", "vuln", "vulnerability", "insecure"]):
-        suggestions.append({
-            "action": "/scan",
-            "args": file_mentions[0] if file_mentions else ".",
-            "description": "Run security scan",
-        })
+        suggestions.append(
+            {
+                "action": "/scan",
+                "args": file_mentions[0] if file_mentions else ".",
+                "description": "Run security scan",
+            }
+        )
 
     if any(kw in msg_lower for kw in ["generate", "create", "scaffold", "make", "build"]):
         if any(kw in msg_lower for kw in ["api", "endpoint", "route"]):
-            suggestions.append({
-                "action": "generate",
-                "args": "api",
-                "description": "Generate API code",
-            })
+            suggestions.append(
+                {
+                    "action": "generate",
+                    "args": "api",
+                    "description": "Generate API code",
+                }
+            )
         elif any(kw in msg_lower for kw in ["class", "model", "schema"]):
-            suggestions.append({
-                "action": "generate",
-                "args": "class",
-                "description": "Generate class code",
-            })
+            suggestions.append(
+                {
+                    "action": "generate",
+                    "args": "class",
+                    "description": "Generate class code",
+                }
+            )
         elif any(kw in msg_lower for kw in ["test", "spec"]):
-            suggestions.append({
-                "action": "generate",
-                "args": "test",
-                "description": "Generate test code",
-            })
+            suggestions.append(
+                {
+                    "action": "generate",
+                    "args": "test",
+                    "description": "Generate test code",
+                }
+            )
 
     if any(kw in msg_lower for kw in ["git", "commit", "branch", "merge", "push"]):
-        suggestions.append({
-            "action": "/git status",
-            "args": "",
-            "description": "Check git status",
-        })
+        suggestions.append(
+            {
+                "action": "/git status",
+                "args": "",
+                "description": "Check git status",
+            }
+        )
 
     if any(kw in msg_lower for kw in ["cost", "price", "usage", "tokens", "budget"]):
-        suggestions.append({
-            "action": "/cost",
-            "args": "",
-            "description": "Show cost analysis",
-        })
+        suggestions.append(
+            {
+                "action": "/cost",
+                "args": "",
+                "description": "Show cost analysis",
+            }
+        )
 
     return suggestions
 
@@ -218,6 +265,7 @@ def get_smart_completions(partial_input: str, cwd: str = ".") -> list[str]:
     # If starts with /, suggest commands
     if partial_input.startswith("/"):
         from .cli import SLASH_COMMANDS
+
         cmd_part = partial_input[1:]
         completions.extend(suggest_commands("/" + cmd_part, SLASH_COMMANDS))
         return completions

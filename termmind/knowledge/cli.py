@@ -130,9 +130,7 @@ def kb_list(collection):
         doc = store.get(doc_id)
         if doc:
             table.add_row(
-                doc_id,
-                doc.metadata.get("source", "unknown"),
-                doc.metadata.get("type", "text")
+                doc_id, doc.metadata.get("source", "unknown"), doc.metadata.get("type", "text")
             )
 
     console.print(table)

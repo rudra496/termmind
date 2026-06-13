@@ -1,4 +1,5 @@
 """Agent system package."""
+
 from termmind.agents.engine import (
     ARCHITECT,
     CODER,
@@ -11,6 +12,12 @@ from termmind.agents.engine import (
 )
 
 __all__ = [
-    "Agent", "AgentPersona", "WorkflowEngine",
-    "RESEARCHER", "CODER", "REVIEWER", "WRITER", "ARCHITECT"
+    "Agent",
+    "AgentPersona",
+    "WorkflowEngine",
+    "RESEARCHER",
+    "CODER",
+    "REVIEWER",
+    "WRITER",
+    "ARCHITECT",
 ]

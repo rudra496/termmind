@@ -70,10 +70,14 @@ class SessionRecorder:
         """Record a user or assistant message."""
         if not self.recording:
             return
-        self._add_event("message", f"{role} message", {
-            "role": role,
-            "content": content[:10000],
-        })
+        self._add_event(
+            "message",
+            f"{role} message",
+            {
+                "role": role,
+                "content": content[:10000],
+            },
+        )
 
     def record_file_edit(self, filepath: str, old_content: str, new_content: str):
         """Record a file edit with before/after content and diff."""
@@ -83,76 +87,106 @@ class SessionRecorder:
         # Generate diff
         old_lines = old_content.splitlines(keepends=True)
         new_lines = new_content.splitlines(keepends=True)
-        diff = "".join(difflib.unified_diff(
-            old_lines, new_lines,
-            fromfile=f"a/{rel_path}", tofile=f"b/{rel_path}",
-        ))
-        self._add_event("file_edit", f"Edited {rel_path}", {
-            "filepath": rel_path,
-            "old_content": old_content[:10000],
-            "new_content": new_content[:10000],
-            "diff": diff[:5000],
-            "lines_added": sum(1 for ln in new_lines if not ln.startswith("-")),
-            "lines_removed": sum(1 for ln in old_lines if not ln.startswith("+")),
-        })
+        diff = "".join(
+            difflib.unified_diff(
+                old_lines,
+                new_lines,
+                fromfile=f"a/{rel_path}",
+                tofile=f"b/{rel_path}",
+            )
+        )
+        self._add_event(
+            "file_edit",
+            f"Edited {rel_path}",
+            {
+                "filepath": rel_path,
+                "old_content": old_content[:10000],
+                "new_content": new_content[:10000],
+                "diff": diff[:5000],
+                "lines_added": sum(1 for ln in new_lines if not ln.startswith("-")),
+                "lines_removed": sum(1 for ln in old_lines if not ln.startswith("+")),
+            },
+        )
 
     def record_command(self, command: str, output: str, exit_code: int):
         """Record a shell command execution."""
         if not self.recording:
             return
-        self._add_event("command", f"Ran: {command[:100]}", {
-            "command": command,
-            "output": output[:5000],
-            "exit_code": exit_code,
-        })
+        self._add_event(
+            "command",
+            f"Ran: {command[:100]}",
+            {
+                "command": command,
+                "output": output[:5000],
+                "exit_code": exit_code,
+            },
+        )
 
     def record_git_operation(self, operation: str, details: str):
         """Record a git operation."""
         if not self.recording:
             return
-        self._add_event("git", f"Git {operation}", {
-            "operation": operation,
-            "details": details[:5000],
-        })
+        self._add_event(
+            "git",
+            f"Git {operation}",
+            {
+                "operation": operation,
+                "details": details[:5000],
+            },
+        )
 
     def record_file_read(self, filepath: str, content: str):
         """Record a file being read into context."""
         if not self.recording:
             return
         rel_path = os.path.relpath(filepath, self.cwd)
-        self._add_event("file_read", f"Read {rel_path}", {
-            "filepath": rel_path,
-            "content_length": len(content),
-        })
+        self._add_event(
+            "file_read",
+            f"Read {rel_path}",
+            {
+                "filepath": rel_path,
+                "content_length": len(content),
+            },
+        )
 
     def record_model_change(self, new_model: str, old_model: str):
         """Record a model switch."""
         if not self.recording:
             return
-        self._add_event("model_change", f"Model: {old_model} → {new_model}", {
-            "old_model": old_model,
-            "new_model": new_model,
-        })
+        self._add_event(
+            "model_change",
+            f"Model: {old_model} → {new_model}",
+            {
+                "old_model": old_model,
+                "new_model": new_model,
+            },
+        )
 
     def record_provider_change(self, new_provider: str, old_provider: str):
         """Record a provider switch."""
         if not self.recording:
             return
-        self._add_event("provider_change", f"Provider: {old_provider} → {new_provider}", {
-            "old_provider": old_provider,
-            "new_provider": new_provider,
-        })
+        self._add_event(
+            "provider_change",
+            f"Provider: {old_provider} → {new_provider}",
+            {
+                "old_provider": old_provider,
+                "new_provider": new_provider,
+            },
+        )
 
     def _add_event(self, event_type: str, description: str, data: dict):
         """Add a timestamped event."""
         elapsed = time.time() - self.start_time if self.start_time else 0
-        self.events.append({
-            "type": event_type,
-            "description": description,
-            "timestamp": datetime.now().isoformat(),
-            "elapsed_seconds": round(elapsed, 3),
-            "data": data,
-        })
+        self.events.append(
+            {
+                "type": event_type,
+                "description": description,
+                "timestamp": datetime.now().isoformat(),
+                "elapsed_seconds": round(elapsed, 3),
+                "data": data,
+            }
+        )
 
 
 def list_recordings() -> list[dict[str, Any]]:
@@ -163,23 +197,27 @@ def list_recordings() -> list[dict[str, Any]]:
         try:
             with open(f) as fh:
                 data = json.load(fh)
-            recordings.append({
-                "name": data.get("name", f.stem),
-                "created_at": data.get("created_at", ""),
-                "duration_seconds": data.get("duration_seconds", 0),
-                "events": len(data.get("events", [])),
-                "filepath": str(f),
-                "cwd": data.get("cwd", ""),
-            })
+            recordings.append(
+                {
+                    "name": data.get("name", f.stem),
+                    "created_at": data.get("created_at", ""),
+                    "duration_seconds": data.get("duration_seconds", 0),
+                    "events": len(data.get("events", [])),
+                    "filepath": str(f),
+                    "cwd": data.get("cwd", ""),
+                }
+            )
         except (json.JSONDecodeError, KeyError):
-            recordings.append({
-                "name": f.stem,
-                "created_at": datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
-                "duration_seconds": 0,
-                "events": 0,
-                "filepath": str(f),
-                "cwd": "",
-            })
+            recordings.append(
+                {
+                    "name": f.stem,
+                    "created_at": datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
+                    "duration_seconds": 0,
+                    "events": 0,
+                    "filepath": str(f),
+                    "cwd": "",
+                }
+            )
     return recordings
 
 
@@ -213,8 +251,12 @@ def replay_recording(name: str, console, speed: float = 1.0):
     duration = data.get("duration_seconds", 0)
 
     console.print(f"\n[bold cyan]📹 Replaying: {recording_name}[/bold cyan]")
-    console.print(f"[dim]Created: {created} | Duration: {duration:.1f}s | Events: {len(events)}[/dim]")
-    console.print(f"[dim]Speed: {speed}x | Press Enter to skip to next event, Ctrl+C to quit[/dim]\n")
+    console.print(
+        f"[dim]Created: {created} | Duration: {duration:.1f}s | Events: {len(events)}[/dim]"
+    )
+    console.print(
+        f"[dim]Speed: {speed}x | Press Enter to skip to next event, Ctrl+C to quit[/dim]\n"
+    )
 
     base_delay = 0.5 / speed
 
@@ -228,12 +270,19 @@ def replay_recording(name: str, console, speed: float = 1.0):
 
             # Type indicator
             type_icons = {
-                "system": "🔵", "message": "💬", "file_edit": "✏️",
-                "command": "⚡", "git": "🐙", "file_read": "📖",
-                "model_change": "🔄", "provider_change": "🔄",
+                "system": "🔵",
+                "message": "💬",
+                "file_edit": "✏️",
+                "command": "⚡",
+                "git": "🐙",
+                "file_read": "📖",
+                "model_change": "🔄",
+                "provider_change": "🔄",
             }
             icon = type_icons.get(event_type, "📌")
-            console.print(f"\n[dim]── Event {i+1}/{len(events)} ── {timestamp} (+{elapsed:.1f}s) ──[/dim]")
+            console.print(
+                f"\n[dim]── Event {i + 1}/{len(events)} ── {timestamp} (+{elapsed:.1f}s) ──[/dim]"
+            )
 
             if event_type == "system":
                 console.print(f"  {icon} [system]{description}[/system]")
@@ -292,7 +341,9 @@ def replay_recording(name: str, console, speed: float = 1.0):
             elif event_type == "file_read":
                 filepath = event_data.get("filepath", "")
                 content_length = event_data.get("content_length", 0)
-                console.print(f"  {icon} [file_path]{filepath}[/file_path] [dim]({content_length:,} chars)[/dim]")
+                console.print(
+                    f"  {icon} [file_path]{filepath}[/file_path] [dim]({content_length:,} chars)[/dim]"
+                )
 
             else:
                 console.print(f"  {icon} [info]{description}[/info]")
@@ -308,7 +359,9 @@ def replay_recording(name: str, console, speed: float = 1.0):
         console.print("\n[yellow]⏹ Replay stopped by user.[/yellow]")
         return
 
-    console.print(f"\n[success]✅ Replay finished: {recording_name} ({len(events)} events)[/success]")
+    console.print(
+        f"\n[success]✅ Replay finished: {recording_name} ({len(events)} events)[/success]"
+    )
 
 
 def export_recording_html(name: str, output_path: Optional[str] = None) -> Optional[str]:
@@ -333,9 +386,14 @@ def export_recording_html(name: str, output_path: Optional[str] = None) -> Optio
         event_data = event.get("data", {})
 
         type_icons = {
-            "system": "🔵", "message": "💬", "file_edit": "✏️",
-            "command": "⚡", "git": "🐙", "file_read": "📖",
-            "model_change": "🔄", "provider_change": "🔄",
+            "system": "🔵",
+            "message": "💬",
+            "file_edit": "✏️",
+            "command": "⚡",
+            "git": "🐙",
+            "file_read": "📖",
+            "model_change": "🔄",
+            "provider_change": "🔄",
         }
         icon = type_icons.get(event_type, "📌")
 
@@ -360,7 +418,9 @@ def export_recording_html(name: str, output_path: Optional[str] = None) -> Optio
             diff_escaped = diff_escaped.replace("\n-", "\n<span class='diff-del'>-")
             diff_escaped = diff_escaped.replace("\n@", "\n<span class='diff-hunk'>@")
             # Close spans at line ends
-            diff_escaped = re.sub(r'(<span class="diff-(?:add|del|hunk)">.*?)(\n|$)', r'\1</span>\2', diff_escaped)
+            diff_escaped = re.sub(
+                r'(<span class="diff-(?:add|del|hunk)">.*?)(\n|$)', r"\1</span>\2", diff_escaped
+            )
             body_html = f"""
                 <div class="file-edit-info">
                     <strong>{html.escape(filepath)}</strong>
@@ -586,6 +646,7 @@ def cmd_record(rest: str, messages, client, console, cwd, ctx_files):
             console.print("[system]No recordings found. Use /record start to begin.[/system]")
             return
         from rich.table import Table
+
         table = Table(title="📹 Recordings", border_style="dim")
         table.add_column("Name", style="file_path")
         table.add_column("Created")
@@ -593,7 +654,7 @@ def cmd_record(rest: str, messages, client, console, cwd, ctx_files):
         table.add_column("Events")
         for r in recordings[:20]:
             dur = r["duration_seconds"]
-            dur_str = f"{dur:.0f}s" if dur < 60 else f"{dur/60:.1f}m"
+            dur_str = f"{dur:.0f}s" if dur < 60 else f"{dur / 60:.1f}m"
             table.add_row(
                 r["name"],
                 r["created_at"][:16] if r["created_at"] else "",

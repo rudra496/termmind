@@ -11,6 +11,7 @@ LIBRARY_DIR = Path.home() / ".termmind" / "prompts"
 @dataclass
 class PromptTemplate:
     """A reusable prompt template."""
+
     name: str
     category: str
     description: str

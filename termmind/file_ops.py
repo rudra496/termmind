@@ -33,7 +33,10 @@ def read_file(path: str, max_chars: int = 100_000) -> Optional[str]:
         return None
     enc = _detect_encoding(p)
     if p.stat().st_size > max_chars:
-        return p.read_text(encoding=enc, errors="replace")[:max_chars] + f"\n\n[... truncated at {max_chars} chars]"
+        return (
+            p.read_text(encoding=enc, errors="replace")[:max_chars]
+            + f"\n\n[... truncated at {max_chars} chars]"
+        )
     return p.read_text(encoding=enc, errors="replace")
 
 
@@ -102,13 +105,34 @@ def get_file_info(path: str) -> Optional[dict[str, object]]:
     content = read_file(path)
     lines = content.count("\n") + 1 if content else 0
     ext_map = {
-        ".py": "python", ".js": "javascript", ".ts": "typescript", ".go": "go",
-        ".rs": "rust", ".java": "java", ".rb": "ruby", ".c": "c", ".cpp": "cpp",
-        ".h": "c", ".cs": "csharp", ".php": "php", ".sh": "bash", ".bash": "bash",
-        ".yaml": "yaml", ".yml": "yaml", ".toml": "toml", ".json": "json",
-        ".md": "markdown", ".html": "html", ".css": "css", ".sql": "sql",
-        ".swift": "swift", ".kt": "kotlin", ".scala": "scala", ".lua": "lua",
-        ".r": "r", ".dart": "dart",
+        ".py": "python",
+        ".js": "javascript",
+        ".ts": "typescript",
+        ".go": "go",
+        ".rs": "rust",
+        ".java": "java",
+        ".rb": "ruby",
+        ".c": "c",
+        ".cpp": "cpp",
+        ".h": "c",
+        ".cs": "csharp",
+        ".php": "php",
+        ".sh": "bash",
+        ".bash": "bash",
+        ".yaml": "yaml",
+        ".yml": "yaml",
+        ".toml": "toml",
+        ".json": "json",
+        ".md": "markdown",
+        ".html": "html",
+        ".css": "css",
+        ".sql": "sql",
+        ".swift": "swift",
+        ".kt": "kotlin",
+        ".scala": "scala",
+        ".lua": "lua",
+        ".r": "r",
+        ".dart": "dart",
     }
     ext = p.suffix.lower()
     language = ext_map.get(ext)
@@ -246,7 +270,9 @@ def search_in_files(query: str, directory: str = ".") -> list[tuple[str, int, st
     return results
 
 
-def grep_files(pattern: str, directory: str = ".", context_lines: int = 0) -> list[dict[str, object]]:
+def grep_files(
+    pattern: str, directory: str = ".", context_lines: int = 0
+) -> list[dict[str, object]]:
     """Grep through project files with optional context. Returns list of match dicts."""
     results = []
     try:
@@ -258,15 +284,17 @@ def grep_files(pattern: str, directory: str = ".", context_lines: int = 0) -> li
             lines = Path(path).read_text(errors="replace").splitlines()
             for i, line in enumerate(lines):
                 if regex.search(line):
-                    context_before = lines[max(0, i - context_lines):i] if context_lines else []
-                    context_after = lines[i + 1:i + 1 + context_lines] if context_lines else []
-                    results.append({
-                        "path": path,
-                        "line": i + 1,
-                        "text": line.strip(),
-                        "context_before": context_before,
-                        "context_after": context_after,
-                    })
+                    context_before = lines[max(0, i - context_lines) : i] if context_lines else []
+                    context_after = lines[i + 1 : i + 1 + context_lines] if context_lines else []
+                    results.append(
+                        {
+                            "path": path,
+                            "line": i + 1,
+                            "text": line.strip(),
+                            "context_before": context_before,
+                            "context_after": context_after,
+                        }
+                    )
         except OSError:
             continue
     return results[:100]
@@ -325,12 +353,14 @@ def get_session_diffs() -> list[tuple[str, str]]:
 
 def compute_diff(original: str, modified: str, filename: str = "file") -> str:
     """Generate unified diff between two strings."""
-    return "".join(difflib.unified_diff(
-        original.splitlines(keepends=True),
-        modified.splitlines(keepends=True),
-        fromfile=f"a/{filename}",
-        tofile=f"b/{filename}",
-    ))
+    return "".join(
+        difflib.unified_diff(
+            original.splitlines(keepends=True),
+            modified.splitlines(keepends=True),
+            fromfile=f"a/{filename}",
+            tofile=f"b/{filename}",
+        )
+    )
 
 
 def build_file_tree(directory: str = ".", max_depth: int = 3, show_sizes: bool = False) -> str:
@@ -345,7 +375,13 @@ def build_file_tree(directory: str = ".", max_depth: int = 3, show_sizes: bool =
 
 
 def _walk_tree(
-    path: Path, lines: list[str], prefix: str, ignores: set, max_depth: int, depth: int, show_sizes: bool = False
+    path: Path,
+    lines: list[str],
+    prefix: str,
+    ignores: set,
+    max_depth: int,
+    depth: int,
+    show_sizes: bool = False,
 ) -> None:
     if depth >= max_depth:
         return
@@ -353,13 +389,23 @@ def _walk_tree(
         entries = sorted(path.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower()))
     except PermissionError:
         return
-    entries = [e for e in entries if not _is_ignored(e.name, ignores) and not e.name.startswith(".")]
+    entries = [
+        e for e in entries if not _is_ignored(e.name, ignores) and not e.name.startswith(".")
+    ]
     for i, entry in enumerate(entries):
         is_last = i == len(entries) - 1
         connector = "└── " if is_last else "├── "
         if entry.is_dir():
             lines.append(f"{prefix}{connector}{entry.name}/")
-            _walk_tree(entry, lines, prefix + ("    " if is_last else "│   "), ignores, max_depth, depth + 1, show_sizes)
+            _walk_tree(
+                entry,
+                lines,
+                prefix + ("    " if is_last else "│   "),
+                ignores,
+                max_depth,
+                depth + 1,
+                show_sizes,
+            )
         else:
             size_str = f" ({_human_size(entry.stat().st_size)})" if show_sizes else ""
             lines.append(f"{prefix}{connector}{entry.name}{size_str}")

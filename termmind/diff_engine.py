@@ -16,6 +16,7 @@ from rich.text import Text
 
 class EditType(Enum):
     """Type of edit detected between file versions."""
+
     INSERT = "insert"
     DELETE = "delete"
     REPLACE = "replace"
@@ -29,6 +30,7 @@ class EditType(Enum):
 @dataclass
 class DiffStats:
     """Statistics for a diff operation."""
+
     files_changed: int = 0
     insertions: int = 0
     deletions: int = 0
@@ -50,6 +52,7 @@ class DiffStats:
 @dataclass
 class DiffHunk:
     """A single hunk from a unified diff."""
+
     old_start: int = 0
     old_count: int = 0
     new_start: int = 0
@@ -75,6 +78,7 @@ class DiffHunk:
 @dataclass
 class FileDiff:
     """Diff information for a single file."""
+
     old_path: str = ""
     new_path: str = ""
     edit_type: EditType = EditType.IDENTICAL
@@ -101,6 +105,7 @@ class FileDiff:
 @dataclass
 class MultiFileDiff:
     """Collection of diffs across multiple files."""
+
     files: list[FileDiff] = field(default_factory=list)
 
     def get_stats(self) -> DiffStats:
@@ -127,8 +132,8 @@ class MultiFileDiff:
 
 # ─── Diff Generation ──────────────────────────────────────────────────────────
 
-def _detect_edit_type(old_content: str, new_content: str,
-                      old_path: str, new_path: str) -> EditType:
+
+def _detect_edit_type(old_content: str, new_content: str, old_path: str, new_path: str) -> EditType:
     """Detect the type of edit between two file states."""
     if not old_content and new_content:
         return EditType.NEW_FILE
@@ -199,30 +204,45 @@ def _parse_unified_diff(diff_text: str) -> list[DiffHunk]:
     return hunks
 
 
-def compute_file_diff(old_content: str, new_content: str,
-                      old_path: str = "", new_path: str = "",
-                      context_lines: int = 3) -> FileDiff:
+def compute_file_diff(
+    old_content: str,
+    new_content: str,
+    old_path: str = "",
+    new_path: str = "",
+    context_lines: int = 3,
+) -> FileDiff:
     """Compute a FileDiff between two content strings."""
     edit_type = _detect_edit_type(old_content, new_content, old_path, new_path)
     if edit_type in (EditType.IDENTICAL,):
-        return FileDiff(old_path=old_path, new_path=new_path,
-                        edit_type=edit_type, old_content=old_content,
-                        new_content=new_content)
+        return FileDiff(
+            old_path=old_path,
+            new_path=new_path,
+            edit_type=edit_type,
+            old_content=old_content,
+            new_content=new_content,
+        )
 
     old_lines = old_content.splitlines(keepends=True)
     new_lines = new_content.splitlines(keepends=True)
 
-    diff_text = "".join(difflib.unified_diff(
-        old_lines, new_lines,
-        fromfile=old_path or "a", tofile=new_path or "b",
-        n=context_lines,
-    ))
+    diff_text = "".join(
+        difflib.unified_diff(
+            old_lines,
+            new_lines,
+            fromfile=old_path or "a",
+            tofile=new_path or "b",
+            n=context_lines,
+        )
+    )
     hunks = _parse_unified_diff(diff_text)
 
     return FileDiff(
-        old_path=old_path, new_path=new_path,
-        edit_type=edit_type, hunks=hunks,
-        old_content=old_content, new_content=new_content,
+        old_path=old_path,
+        new_path=new_path,
+        edit_type=edit_type,
+        hunks=hunks,
+        old_content=old_content,
+        new_content=new_content,
     )
 
 
@@ -232,12 +252,12 @@ def compute_diff_from_disk(old_path: str, new_content: str) -> FileDiff:
     if os.path.exists(old_path):
         with open(old_path, encoding="utf-8", errors="replace") as f:
             old_content = f.read()
-    return compute_file_diff(old_content, new_content,
-                             old_path=old_path, new_path=old_path)
+    return compute_file_diff(old_content, new_content, old_path=old_path, new_path=old_path)
 
 
-def compute_multi_file_diff(changes: dict[str, str],
-                            old_contents: Optional[dict[str, str]] = None) -> MultiFileDiff:
+def compute_multi_file_diff(
+    changes: dict[str, str], old_contents: Optional[dict[str, str]] = None
+) -> MultiFileDiff:
     """Compute diffs for multiple files at once.
 
     Args:
@@ -255,12 +275,12 @@ def compute_multi_file_diff(changes: dict[str, str],
                     old_content = f.read()
             except OSError:
                 old_content = ""
-        diffs.append(compute_file_diff(old_content, new_content,
-                                       filepath, filepath))
+        diffs.append(compute_file_diff(old_content, new_content, filepath, filepath))
     return MultiFileDiff(files=diffs)
 
 
 # ─── Rendering ────────────────────────────────────────────────────────────────
+
 
 def _render_inline_hunk(hunk: DiffHunk, line_numbers: bool = True) -> Text:
     """Render a single hunk as inline colored diff text."""
@@ -351,9 +371,13 @@ def render_diff_inline(file_diff: FileDiff, console: Console) -> None:
 
     # File header
     type_icons = {
-        EditType.INSERT: "📝", EditType.DELETE: "🗑️", EditType.REPLACE: "✏️",
-        EditType.RENAME: "🔄", EditType.MOVE: "📦",
-        EditType.NEW_FILE: "🆕", EditType.DELETED_FILE: "💀",
+        EditType.INSERT: "📝",
+        EditType.DELETE: "🗑️",
+        EditType.REPLACE: "✏️",
+        EditType.RENAME: "🔄",
+        EditType.MOVE: "📦",
+        EditType.NEW_FILE: "🆕",
+        EditType.DELETED_FILE: "💀",
     }
     icon = type_icons.get(file_diff.edit_type, "📝")
     header = f"{icon} {file_diff.display_path}"
@@ -373,8 +397,9 @@ def render_diff_inline(file_diff: FileDiff, console: Console) -> None:
         console.print(text)
 
 
-def render_diff_side_by_side(file_diff: FileDiff, console: Console,
-                             width: Optional[int] = None) -> None:
+def render_diff_side_by_side(
+    file_diff: FileDiff, console: Console, width: Optional[int] = None
+) -> None:
     """Render a file diff in side-by-side format."""
     if file_diff.edit_type == EditType.IDENTICAL:
         return
@@ -390,8 +415,9 @@ def render_diff_side_by_side(file_diff: FileDiff, console: Console,
         console.print()  # spacing between hunks
 
 
-def render_multi_diff(multi_diff: MultiFileDiff, console: Console,
-                      side_by_side: bool = False) -> None:
+def render_multi_diff(
+    multi_diff: MultiFileDiff, console: Console, side_by_side: bool = False
+) -> None:
     """Render all file diffs in a MultiFileDiff."""
     stats = multi_diff.get_stats()
 
@@ -415,9 +441,9 @@ def render_multi_diff(multi_diff: MultiFileDiff, console: Console,
         ins = fd.insertions
         dels = fd.deletions
         type_label = fd.edit_type.value.replace("_", " ").title()
-        summary_table.add_row(fd.display_path, type_label,
-                              f"+{ins}" if ins else "",
-                              f"-{dels}" if dels else "")
+        summary_table.add_row(
+            fd.display_path, type_label, f"+{ins}" if ins else "", f"-{dels}" if dels else ""
+        )
     console.print(summary_table)
     console.print()
 
@@ -431,14 +457,16 @@ def render_multi_diff(multi_diff: MultiFileDiff, console: Console,
 
 # ─── Interactive Hunk Confirmation ────────────────────────────────────────────
 
-def _prompt_hunk_action(console: Console, hunk: DiffHunk, file_path: str,
-                        index: int, total: int) -> str:
+
+def _prompt_hunk_action(
+    console: Console, hunk: DiffHunk, file_path: str, index: int, total: int
+) -> str:
     """Prompt user to accept/reject a single hunk. Returns 'y', 'n', 'q', or 'a'."""
-    console.print(f"\n[bold]Hunk {index + 1}/{total}[/bold] — "
-                  f"[file_path]{file_path}[/file_path]")
+    console.print(f"\n[bold]Hunk {index + 1}/{total}[/bold] — [file_path]{file_path}[/file_path]")
     console.print(f"  [dim]{hunk.header}[/dim]")
-    console.print(f"  [diff.plus]+{hunk.insertions}[/diff.plus]  "
-                  f"[diff.minus]-{hunk.deletions}[/diff.minus]")
+    console.print(
+        f"  [diff.plus]+{hunk.insertions}[/diff.plus]  [diff.minus]-{hunk.deletions}[/diff.minus]"
+    )
     console.print()
     text = _render_inline_hunk(hunk)
     console.print(text)
@@ -474,8 +502,9 @@ def apply_hunks_interactive(file_diff: FileDiff, console: Console) -> Optional[s
 
     for i, hunk in enumerate(change_hunks):
         if not accept_all:
-            choice = _prompt_hunk_action(console, hunk, file_diff.display_path,
-                                         i, len(change_hunks))
+            choice = _prompt_hunk_action(
+                console, hunk, file_diff.display_path, i, len(change_hunks)
+            )
             if choice == "q":
                 aborted = True
                 break
@@ -513,7 +542,9 @@ def apply_hunks_interactive(file_diff: FileDiff, console: Console) -> Optional[s
                 # Replace: remove old lines, insert new ones
                 for offset, pos in enumerate(positions):
                     if offset == 0:
-                        result_lines[pos] = additions[offset] if offset < len(additions) else result_lines[pos]
+                        result_lines[pos] = (
+                            additions[offset] if offset < len(additions) else result_lines[pos]
+                        )
                     else:
                         if offset - 1 < len(additions) - 1:
                             result_lines[pos] = additions[offset]
@@ -536,8 +567,9 @@ def apply_hunks_interactive(file_diff: FileDiff, console: Console) -> Optional[s
     return "\n".join(result_lines)
 
 
-def apply_multi_diff_interactive(multi_diff: MultiFileDiff,
-                                 console: Console) -> dict[str, Optional[str]]:
+def apply_multi_diff_interactive(
+    multi_diff: MultiFileDiff, console: Console
+) -> dict[str, Optional[str]]:
     """Interactively review and apply diffs for multiple files.
 
     Returns dict mapping filepath -> final content (or None if skipped).
@@ -570,7 +602,9 @@ def apply_multi_diff_interactive(multi_diff: MultiFileDiff,
             result = apply_hunks_interactive(fd, console)
             if result is not None:
                 results[fd.new_path or fd.old_path] = result
-                console.print(f"  [success]✅ Applied accepted hunks to {fd.display_path}[/success]")
+                console.print(
+                    f"  [success]✅ Applied accepted hunks to {fd.display_path}[/success]"
+                )
             else:
                 results[fd.new_path or fd.old_path] = None
         else:
@@ -581,11 +615,12 @@ def apply_multi_diff_interactive(multi_diff: MultiFileDiff,
 
 # ─── Preview Helper (integration with cli.py) ─────────────────────────────────
 
-def preview_and_confirm_edit(filepath: str, old_content: str,
-                             new_content: str, console: Console) -> bool:
+
+def preview_and_confirm_edit(
+    filepath: str, old_content: str, new_content: str, console: Console
+) -> bool:
     """Show a diff preview and ask for confirmation. Returns True if accepted."""
-    file_diff = compute_file_diff(old_content, new_content,
-                                   old_path=filepath, new_path=filepath)
+    file_diff = compute_file_diff(old_content, new_content, old_path=filepath, new_path=filepath)
     render_diff_inline(file_diff, console)
 
     stats = file_diff.insertions + file_diff.deletions
@@ -600,16 +635,15 @@ def preview_and_confirm_edit(filepath: str, old_content: str,
         return False
 
 
-def preview_edit_with_hunks(filepath: str, old_content: str,
-                            new_content: str, console: Console) -> Optional[str]:
+def preview_edit_with_hunks(
+    filepath: str, old_content: str, new_content: str, console: Console
+) -> Optional[str]:
     """Show diff with hunk-by-hunk confirmation. Returns final content or None."""
-    file_diff = compute_file_diff(old_content, new_content,
-                                   old_path=filepath, new_path=filepath)
+    file_diff = compute_file_diff(old_content, new_content, old_path=filepath, new_path=filepath)
     return apply_hunks_interactive(file_diff, console)
 
 
-def generate_diff_stats_text(old_content: str, new_content: str,
-                             filepath: str = "") -> str:
+def generate_diff_stats_text(old_content: str, new_content: str, filepath: str = "") -> str:
     """Generate a compact one-line diff stats string for display."""
     fd = compute_file_diff(old_content, new_content, filepath, filepath)
     ins = fd.insertions

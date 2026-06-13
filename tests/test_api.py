@@ -1,7 +1,6 @@
 """Tests for the API client module."""
 
-import json
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
@@ -11,8 +10,7 @@ from termmind.api import APIClient, APIError
 
 @pytest.fixture
 def mock_config():
-    with patch("termmind.api.load_config") as mc, \
-         patch("termmind.api.get_provider_info") as mp:
+    with patch("termmind.api.load_config") as mc, patch("termmind.api.get_provider_info") as mp:
         mc.return_value = {
             "provider": "openai",
             "api_key": "test-key",
@@ -40,7 +38,9 @@ class TestAPIClient:
         assert client.usage == {"prompt_tokens": 0, "completion_tokens": 0}
 
     def test_init_with_overrides(self, mock_config):
-        client = APIClient(provider="ollama", api_key="", model="llama3.2", max_tokens=2048, temperature=0.5)
+        client = APIClient(
+            provider="ollama", api_key="", model="llama3.2", max_tokens=2048, temperature=0.5
+        )
         assert client.provider == "ollama"
         assert client.api_key == ""
         assert client.model == "llama3.2"
@@ -62,7 +62,9 @@ class TestAPIClient:
     def test_build_messages_with_system_prompt(self, mock_config):
         mock_config[0].return_value["system_prompt"] = "You are helpful."
         client = APIClient()
-        msgs = client._build_messages([{"role": "user", "content": "hi"}], system_prompt="Be brief.")
+        msgs = client._build_messages(
+            [{"role": "user", "content": "hi"}], system_prompt="Be brief."
+        )
         assert msgs[0]["role"] == "system"
         assert msgs[0]["content"] == "Be brief."
         assert len(msgs) == 2
@@ -75,6 +77,7 @@ class TestAPIClient:
 
     def test_estimate_tokens(self, mock_config):
         from termmind.utils import estimate_tokens
+
         assert estimate_tokens("hello world") == len("hello world") // 4
         assert estimate_tokens("") == 0
 
@@ -107,12 +110,12 @@ class TestAPIClient:
         mock_resp.status_code = 401
         mock_resp.text = "Unauthorized"
         client = APIClient()
-        with patch.object(httpx.Client, "post", return_value=mock_resp):
-            with pytest.raises(APIError, match="401"):
-                client.chat([{"role": "user", "content": "hi"}])
+        with patch.object(httpx.Client, "post", return_value=mock_resp), pytest.raises(APIError, match="401"):
+            client.chat([{"role": "user", "content": "hi"}])
 
     def test_chat_retry_on_429(self, mock_config):
         call_count = 0
+
         def fake_post(*args, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -127,6 +130,7 @@ class TestAPIClient:
                     "usage": {"prompt_tokens": 10, "completion_tokens": 5},
                 }
             return r
+
         client = APIClient()
         with patch.object(httpx.Client, "post", side_effect=fake_post):
             result = client.chat([{"role": "user", "content": "hi"}])
@@ -138,16 +142,15 @@ class TestAPIClient:
         mock_resp.status_code = 500
         mock_resp.text = "Server error"
         client = APIClient()
-        with patch.object(httpx.Client, "post", return_value=mock_resp):
-            with pytest.raises(APIError, match="500"):
-                client.chat([{"role": "user", "content": "hi"}])
+        with patch.object(httpx.Client, "post", return_value=mock_resp), pytest.raises(APIError, match="500"):
+            client.chat([{"role": "user", "content": "hi"}])
 
     def test_chat_stream_success(self, mock_config):
         client = APIClient()
         lines = [
             'data: {"choices":[{"delta":{"content":"Hello"}}]}',
             'data: {"choices":[{"delta":{"content":" world"}}]}',
-            'data: [DONE]',
+            "data: [DONE]",
         ]
         mock_stream_ctx = MagicMock()
         mock_stream_resp = MagicMock()
@@ -175,21 +178,18 @@ class TestAPIClient:
         mock_client.stream.return_value = mock_stream_ctx
         mock_client.__enter__ = MagicMock(return_value=mock_client)
         mock_client.__exit__ = MagicMock(return_value=False)
-        with patch("httpx.Client", return_value=mock_client):
-            with pytest.raises(APIError, match="500"):
-                list(client.chat_stream([{"role": "user", "content": "hi"}]))
+        with patch("httpx.Client", return_value=mock_client), pytest.raises(APIError, match="500"):
+            list(client.chat_stream([{"role": "user", "content": "hi"}]))
 
     def test_chat_stream_connect_error(self, mock_config):
         client = APIClient()
-        with patch("httpx.Client", side_effect=httpx.ConnectError("Connection refused")):
-            with pytest.raises(APIError, match="Cannot connect"):
-                list(client.chat_stream([{"role": "user", "content": "hi"}]))
+        with patch("httpx.Client", side_effect=httpx.ConnectError("Connection refused")), pytest.raises(APIError, match="Cannot connect"):
+            list(client.chat_stream([{"role": "user", "content": "hi"}]))
 
     def test_chat_stream_timeout(self, mock_config):
         client = APIClient()
-        with patch("httpx.Client", side_effect=httpx.TimeoutException("Timeout")):
-            with pytest.raises(APIError, match="timed out"):
-                list(client.chat_stream([{"role": "user", "content": "hi"}]))
+        with patch("httpx.Client", side_effect=httpx.TimeoutException("Timeout")), pytest.raises(APIError, match="timed out"):
+            list(client.chat_stream([{"role": "user", "content": "hi"}]))
 
     def test_chat_empty_response(self, mock_config):
         mock_resp = MagicMock()
