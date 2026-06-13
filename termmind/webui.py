@@ -1324,7 +1324,20 @@ def start_webui(port: int = 8080, open_browser: bool = True) -> None:
     # Use ThreadingTCPServer to avoid blocking the server during chat requests
     ThreadingTCPServer.allow_reuse_address = True
     
-    server = ThreadingTCPServer(("127.0.0.1", port), WebUIRequestHandler)
+    max_attempts = 10
+    server = None
+    for attempt in range(max_attempts):
+        try:
+            server = ThreadingTCPServer(("127.0.0.1", port), WebUIRequestHandler)
+            break
+        except OSError:
+            print(f"Port {port} is already in use. Trying port {port + 1}...")
+            port += 1
+
+    if server is None:
+        print("Error: Could not find any open port for the Web UI server.")
+        return
+
     print(f"==================================================")
     print(f"🚀 TermMind Web UI starting on http://localhost:{port}")
     print(f"==================================================")
