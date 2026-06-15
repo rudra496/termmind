@@ -8,26 +8,30 @@ from typing import Any, Optional
 
 import httpx
 
-USER_AGENT = "TermMind/1.0.0"
+from . import __version__
+
+USER_AGENT = f"TermMind/{__version__}"
 _TIMEOUT = httpx.Timeout(120, connect=10)
 _STREAM_TIMEOUT = httpx.Timeout(120, connect=10)
 _OLLAMA_TIMEOUT = httpx.Timeout(300, connect=10)
 
-_shared_client: Optional[httpx.Client] = None
+_shared_clients: dict[int, httpx.Client] = {}
 
 
 def _get_shared_client(timeout: httpx.Timeout = _TIMEOUT) -> httpx.Client:
-    global _shared_client
-    if _shared_client is None or _shared_client.is_closed:
-        _shared_client = httpx.Client(timeout=timeout)
-    return _shared_client
+    global _shared_clients
+    t_val = timeout.read or 120
+    if t_val not in _shared_clients or _shared_clients[t_val].is_closed:
+        _shared_clients[t_val] = httpx.Client(timeout=timeout)
+    return _shared_clients[t_val]
 
 
 def _close_shared_client() -> None:
-    global _shared_client
-    if _shared_client is not None:
-        _shared_client.close()
-        _shared_client = None
+    global _shared_clients
+    for client in _shared_clients.values():
+        if not client.is_closed:
+            client.close()
+    _shared_clients.clear()
 
 
 class BaseProvider(ABC):
@@ -162,6 +166,7 @@ def _retry_request(func, max_retries: int = 3, retry_on: Optional[list[int]] = N
             if hasattr(resp, "status_code") and resp.status_code in retry_on:
                 wait = 2 ** (attempt + 1)
                 time.sleep(wait)
+                last_err = Exception(f"HTTP error {resp.status_code}")
                 continue
             return resp
         except (httpx.ConnectError, httpx.TimeoutException) as e:
@@ -277,7 +282,7 @@ class AnthropicProvider(BaseProvider):
                 if not line or not line.startswith("data: "):
                     continue
                 data = line[6:]
-                if data.strip() == "[DONE]":
+                if data.strip() == "[DONE]" or '"type": "message_stop"' in data:
                     break
                 try:
                     parsed = json.loads(data)
@@ -468,6 +473,8 @@ class CohereProvider(BaseProvider):
             if msg["role"] == "system":
                 system = msg["content"]
             elif msg["role"] == "user":
+                if user_message:
+                    chat_history.append({"role": "USER", "message": user_message})
                 user_message = msg["content"]
             elif msg["role"] == "assistant":
                 chat_history.append({"role": "CHATBOT", "message": msg["content"]})
@@ -571,7 +578,7 @@ class OllamaProvider(OpenAICompatibleProvider):
         self, messages: list[dict[str, str]], stream: bool = False, **kw: Any
     ) -> Generator[str, None, None]:
         kw["max_tokens"] = kw.get("max_tokens", 4096)
-        return super().send_message(messages, stream, **kw)
+        yield from super().send_message(messages, stream, **kw)
 
 
 # Provider registry

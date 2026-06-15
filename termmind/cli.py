@@ -30,10 +30,10 @@ from .knowledge.cli import kb_cmd
 from .themes import get_theme
 
 HISTORY_FILE = Path.home() / ".termmind" / "history"
-BANNER = r"""
+BANNER = f"""
 [bold cyan]  ╔═══════════════════════════════════╗
   ║      [bold white]T e r m M i n d[/bold white]                ║
-  ║   [dim]AI Terminal Assistant v2.0.0[/dim]       ║
+  ║   [dim]AI Terminal Assistant v{__version__}[/dim]       ║
   ║   [dim]9 Providers • Security • Generate[/dim]  ║
   ╚═══════════════════════════════════╝[/bold cyan]
 """
@@ -264,7 +264,7 @@ def _interactive_init() -> dict:
 @click.version_option(__version__, prog_name="termmind")
 @click.pass_context
 def main(ctx: click.Context):
-    """TermMind — AI terminal assistant with 7 providers, streaming, plugins, and more."""
+    """TermMind — AI terminal assistant with 9 providers, git tools, and local workflows."""
     if ctx.invoked_subcommand is None:
         ctx.invoke(chat)
 
@@ -377,7 +377,7 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
 
     while True:
         try:
-            user_input = session.prompt("\n[prompt]❯ [/prompt]")
+            user_input = session.prompt("\n❯ ")
         except (EOFError, KeyboardInterrupt):
             # Run plugin exit hooks
             for plugin in plugins:
@@ -392,8 +392,9 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
 
         if user_input.startswith("/"):
             try:
+                cmd = user_input[1:].strip().split()[0] if user_input[1:].strip() else ""
                 handle_command(
-                    user_input[1:],
+                    cmd,
                     user_input[1:],
                     messages,
                     client,
@@ -749,14 +750,12 @@ def translate(filepath: str, lang: str, provider: Optional[str], model: Optional
         model=model or cfg.get("model"),
     )
     prompt = (
-        f"""Translate all comments and docstrings in this file to {lang}.
-Keep all code, variable names, and structure exactly the same.
-Only translate text in comments (# ...) and docstrings ("""
-        """).
-Output the complete file.
-
-File: {filepath}
-```\n{content}\n```"""
+        f"Translate all comments and docstrings in this file to {lang}.\n"
+        f"Keep all code, variable names, and structure exactly the same.\n"
+        f"Only translate text in comments (# ...) and docstrings (''' ... ''' or \"\"\" ... \"\"\").\n"
+        f"Output the complete file.\n\n"
+        f"File: {filepath}\n"
+        f"```\n{content}\n```"
     )
     console.print(f"[system]🤖 Translating {filepath} to {lang}...[/system]\n")
     response = _stream_response(client, [{"role": "user", "content": prompt}], console)

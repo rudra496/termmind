@@ -463,15 +463,16 @@ def cmd_providers(rest: str, messages, client, console, cwd, ctx_files):
     table.add_column("Default Model")
     table.add_column("Requires Key")
     table.add_column("Status")
+    cfg = load_config()
     for name, info in PROVIDER_PRESETS.items():
-        marker = " ← current" if name == client.provider else ""
+        marker = " ← current" if name == client.provider_name else ""
         needs_key = "Yes" if info["requires_key"] else "No"
         has_key = (
             "✅"
             if (
                 not info["requires_key"]
-                or load_config().get("providers", {}).get(name, {}).get("api_key")
-                or (name == load_config().get("provider") and load_config().get("api_key"))
+                or cfg.get("providers", {}).get(name, {}).get("api_key")
+                or (name == cfg.get("provider") and cfg.get("api_key"))
             )
             else "⚠ No key"
         )
@@ -605,12 +606,12 @@ def cmd_git(rest: str, messages, client, console, cwd, ctx_files):
     if sub == "status":
         console.print(git_status(cwd) or "✨ Working tree clean")
     elif sub == "log":
-        console.print(git_log(cwd) or "No commits")
+        console.print(git_log(cwd=cwd) or "No commits")
     elif sub == "diff":
         d = git_diff(cwd)
         console.print(d if d else "No changes")
     elif sub == "branch":
-        console.print(git_branch(cwd) or "No branches")
+        console.print(git_branch(cwd=cwd) or "No branches")
     elif sub == "checkout" and rest_args:
         out, rc = git_checkout(rest_args, cwd)
         console.print(f"[success]{out}[/success]" if rc == 0 else f"[error]{out}[/error]")
@@ -689,12 +690,16 @@ def cmd_tree(rest: str, messages, client, console, cwd, ctx_files):
 
 def cmd_export(rest: str, messages, client, console, cwd, ctx_files):
     fmt = "json" if "--json" in rest else "markdown"
-    name = rest.replace("--json", "").strip() or datetime.now().strftime("%Y-%m-%d_%H-%M")
+    name = rest.replace("--json", "").strip()
+    if not name:
+        console.print("[error]Usage: /export <session_name> [--json][/error]")
+        return
     content = export_session(name, fmt)
     if not content:
         console.print(f"[error]Session not found: {name}[/error]")
         return
-    out_path = os.path.join(cwd, f"termmind_export_{name}.{fmt[:4]}")
+    ext = "json" if fmt == "json" else "md"
+    out_path = os.path.join(cwd, f"termmind_export_{name}.{ext}")
     with open(out_path, "w") as f:
         f.write(content)
     console.print(f"[success]📤 Exported to: {out_path}[/success]")
@@ -825,10 +830,13 @@ def cmd_eli5(rest: str, messages, client, console, cwd, ctx_files):
         prompt = cmd_eli5.eli5.modify_user_message(rest)
         messages.append({"role": "user", "content": prompt})
         sys_prompt = cmd_eli5.eli5.get_system_prompt()
-        extra = {"system": sys_prompt} if sys_prompt else {}
-        response = client.send_message(messages, **extra)
-        console.print(f"\n{response}\n")
-        messages.append({"role": "assistant", "content": response})
+        console.print()
+        response_text = ""
+        for chunk in client.chat_stream(messages, system_prompt=sys_prompt):
+            console.print(chunk, end="")
+            response_text += chunk
+        console.print("\n")
+        messages.append({"role": "assistant", "content": response_text})
     else:
         console.print(cmd_eli5.eli5.get_help_text())
 

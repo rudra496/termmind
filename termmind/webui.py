@@ -919,7 +919,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 .replace(/>/g, "&gt;");
 
             // Code blocks
-            formatted = formatted.replace(/```(\\w*)\\n([\\s\\S]*?)```/g, (match, lang, code) => {
+            formatted = formatted.replace(/```(\\w*)\\r?\\n([\\s\\S]*?)```/g, (match, lang, code) => {
                 return `<pre><code class="language-${lang}">${code.trim()}</code></pre>`;
             });
 
@@ -930,7 +930,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             formatted = formatted.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>');
 
             // Newlines
-            formatted = formatted.replace(/\\n/g, '<br>');
+            formatted = formatted.replace(/\\r?\\n/g, '<br>');
 
             bubble.innerHTML = formatted;
             scroller.appendChild(bubble);
@@ -1102,7 +1102,9 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
     def _send_json(self, data: Any, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin")
+        if origin and (origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:")):
+            self.send_header("Access-Control-Allow-Origin", origin)
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 
@@ -1114,7 +1116,9 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self) -> None:
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin")
+        if origin and (origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:")):
+            self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
@@ -1195,6 +1199,7 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
                 except Exception:
                     pass
             self._send_json({"documents": docs_count, "total_size": docs_size})
+            return
         if path == "/api/files":
             files = []
             cwd = os.getcwd()
@@ -1308,7 +1313,7 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
                 with console.capture() as capture:
                     try:
                         # Check if command is registered in TermMind slash handlers
-                        handled = handle_command(
+                        handle_command(
                             cmd,
                             clean_cmd,
                             session_messages,
@@ -1317,21 +1322,6 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
                             os.getcwd(),
                             context_files,
                         )
-                        if not handled:
-                            # Run as shell command directly
-                            import subprocess
-
-                            result = subprocess.run(
-                                command_str,
-                                shell=True,
-                                capture_output=True,
-                                text=True,
-                                timeout=20.0,
-                            )
-                            if result.stdout:
-                                console.print(result.stdout)
-                            if result.stderr:
-                                console.print(f"[red]{result.stderr}[/red]")
                     except Exception as err:
                         console.print(f"[red]Execution error: {err}[/red]")
 
