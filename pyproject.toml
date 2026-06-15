@@ -31,6 +31,10 @@ dependencies = [
     "prompt_toolkit>=3.0",
     "rich>=13.0",
     "click>=8.0",
+    "textual>=0.52.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "docker>=7.0.0",
 ]
 
 [project.optional-dependencies]
