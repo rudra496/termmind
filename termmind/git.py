@@ -7,9 +7,7 @@ from typing import Optional
 def _git(args: list[str], cwd: str = ".") -> tuple[str, int]:
     """Run a git command, return (output, return_code)."""
     try:
-        r = subprocess.run(
-            ["git"] + args, capture_output=True, text=True, cwd=cwd, timeout=30
-        )
+        r = subprocess.run(["git"] + args, capture_output=True, text=True, cwd=cwd, timeout=30)
         return (r.stdout.strip(), r.returncode)
     except FileNotFoundError:
         return ("git not found", 1)

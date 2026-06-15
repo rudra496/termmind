@@ -29,7 +29,8 @@ def _make_theme(name: str, **styles) -> Theme:
         "cost": "dim",
         "divider": "dim",
     }
-    base.update(styles)
+    dot_styles = {k.replace("_", "."): v for k, v in styles.items()}
+    base.update(dot_styles)
     return Theme(base)
 
 

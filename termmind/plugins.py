@@ -52,11 +52,13 @@ class TodoTrackerPlugin(BasePlugin):
         for line in new_content.splitlines():
             m = self._pattern.search(line)
             if m:
-                self._todo_items.append({
-                    "type": m.group(1).upper(),
-                    "text": m.group(2).strip(),
-                    "file": filepath,
-                })
+                self._todo_items.append(
+                    {
+                        "type": m.group(1).upper(),
+                        "text": m.group(2).strip(),
+                        "file": filepath,
+                    }
+                )
 
     def get_todos(self) -> list[dict[str, str]]:
         return list(self._todo_items)
@@ -72,11 +74,13 @@ class CodeStatsPlugin(BasePlugin):
     def on_edit(self, filepath: str, old_content: str, new_content: str) -> None:
         old_lines = len(old_content.splitlines()) if old_content else 0
         new_lines = len(new_content.splitlines()) if new_content else 0
-        self._edit_log.append({
-            "file": filepath,
-            "lines_added": max(0, new_lines - old_lines),
-            "lines_removed": max(0, old_lines - new_lines),
-        })
+        self._edit_log.append(
+            {
+                "file": filepath,
+                "lines_added": max(0, new_lines - old_lines),
+                "lines_removed": max(0, old_lines - new_lines),
+            }
+        )
 
     def get_stats(self) -> dict[str, Any]:
         total_added = sum(e["lines_added"] for e in self._edit_log)
@@ -106,12 +110,20 @@ class AutoCommitPlugin(BasePlugin):
         if not self._pending_files:
             return None
         import subprocess
+
         files = list(set(self._pending_files))
         try:
             subprocess.run(["git", "add"] + files, capture_output=True, timeout=10)
             result = subprocess.run(
-                ["git", "commit", "-m", f"Auto-commit: {', '.join(os.path.basename(f) for f in files)}"],
-                capture_output=True, text=True, timeout=10,
+                [
+                    "git",
+                    "commit",
+                    "-m",
+                    f"Auto-commit: {', '.join(os.path.basename(f) for f in files)}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             self._pending_files.clear()
             return result.stdout.strip() or result.stderr.strip()
@@ -144,7 +156,11 @@ def discover_plugins() -> list[BasePlugin]:
                     spec.loader.exec_module(mod)
                     for attr_name in dir(mod):
                         attr = getattr(mod, attr_name)
-                        if isinstance(attr, type) and issubclass(attr, BasePlugin) and attr is not BasePlugin:
+                        if (
+                            isinstance(attr, type)
+                            and issubclass(attr, BasePlugin)
+                            and attr is not BasePlugin
+                        ):
                             plugins.append(attr())
             except Exception:
                 continue

@@ -4,13 +4,12 @@ This script demonstrates how to use TermMind's Python API
 to validate configuration and check provider connectivity.
 """
 
-import json
 import sys
 
 
 def main() -> None:
     try:
-        from termmind.config import load_config, PROVIDER_PRESETS
+        from termmind.config import PROVIDER_PRESETS, load_config
         from termmind.utils import estimate_tokens
     except ImportError:
         print("Install termmind first: pip install -e .")

@@ -9,6 +9,7 @@ try:
     import fcntl  # noqa: F401
     import struct  # noqa: F401
     import termios  # noqa: F401
+
     HAS_TERMIOS = True
 except ImportError:
     HAS_TERMIOS = False
@@ -17,6 +18,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 # ─── Shell Detection ──────────────────────────────────────────────────────────
+
 
 def detect_shell() -> str:
     """Detect the current shell type.
@@ -82,7 +84,9 @@ def get_shell_config_path(shell: Optional[str] = None) -> Optional[str]:
         ],
         "powershell": [
             os.path.join(home, "Documents", "PowerShell", "Microsoft.PowerShell_profile.ps1"),
-            os.path.join(home, "Documents", "WindowsPowerShell", "Microsoft.PowerShell_profile.ps1"),
+            os.path.join(
+                home, "Documents", "WindowsPowerShell", "Microsoft.PowerShell_profile.ps1"
+            ),
         ],
     }
 
@@ -100,6 +104,7 @@ def get_shell_config_path(shell: Optional[str] = None) -> Optional[str]:
 
 
 # ─── Terminal Capabilities ────────────────────────────────────────────────────
+
 
 def get_terminal_size() -> tuple[int, int]:
     """Get terminal dimensions (rows, columns). Returns (24, 80) as fallback."""
@@ -133,7 +138,15 @@ def supports_unicode() -> bool:
 
     # Common terminals that support Unicode
     term = os.environ.get("TERM_PROGRAM", "")
-    return term in ("iTerm.app", "WezTerm", "Hyper", "ghostty", "kitty", "vscode", "WindowsTerminal")
+    return term in (
+        "iTerm.app",
+        "WezTerm",
+        "Hyper",
+        "ghostty",
+        "kitty",
+        "vscode",
+        "WindowsTerminal",
+    )
 
 
 def supports_emoji() -> bool:
@@ -221,20 +234,61 @@ def _handle_resize(signum, frame) -> None:
 # ─── Completion Script Generation ─────────────────────────────────────────────
 
 TERMIND_COMMANDS = [
-    "init", "chat", "ask", "edit", "review", "explain", "test",
-    "refactor", "docstring", "debug", "translate", "history", "config",
+    "init",
+    "chat",
+    "ask",
+    "edit",
+    "review",
+    "explain",
+    "test",
+    "refactor",
+    "docstring",
+    "debug",
+    "translate",
+    "history",
+    "config",
     "doctors",
 ]
 
 TERMIND_CHAT_COMMANDS = [
-    "edit", "run", "files", "add", "remove", "search", "grep", "tree",
-    "clear", "save", "load", "sessions", "model", "models", "provider",
-    "providers", "cost", "theme", "themes", "undo", "diff", "status",
-    "git", "export", "compact", "system", "help", "version", "quit",
+    "edit",
+    "run",
+    "files",
+    "add",
+    "remove",
+    "search",
+    "grep",
+    "tree",
+    "clear",
+    "save",
+    "load",
+    "sessions",
+    "model",
+    "models",
+    "provider",
+    "providers",
+    "cost",
+    "theme",
+    "themes",
+    "undo",
+    "diff",
+    "status",
+    "git",
+    "export",
+    "compact",
+    "system",
+    "help",
+    "version",
+    "quit",
 ]
 
 TERMIND_GIT_SUBCOMMANDS = [
-    "status", "log", "diff", "branch", "checkout", "commit",
+    "status",
+    "log",
+    "diff",
+    "branch",
+    "checkout",
+    "commit",
 ]
 
 
@@ -358,7 +412,7 @@ def generate_zsh_completion() -> str:
     commands_list = " \\\n    ".join(f'"{c}"' for c in TERMIND_COMMANDS)
     " \\\n    ".join(f'"{c}"' for c in TERMIND_CHAT_COMMANDS)
 
-    return f'''#compdef termmind
+    return f"""#compdef termmind
 
 _termmind_commands() {{
     local -a commands
@@ -390,16 +444,15 @@ _termmind() {{
 }}
 
 _termmind "$@"
-'''
+"""
 
 
 def generate_fish_completion() -> str:
     """Generate a Fish shell completion script for termmind."""
     commands_lines = "\n".join(
-        f"complete -c termmind -f -n '__fish_is_first_arg' -a {c}"
-        for c in TERMIND_COMMANDS
+        f"complete -c termmind -f -n '__fish_is_first_arg' -a {c}" for c in TERMIND_COMMANDS
     )
-    return f'''# TermMind Fish shell completion
+    return f"""# TermMind Fish shell completion
 
 # Disable file completions for the main command
 complete -c termmind -f
@@ -417,7 +470,7 @@ complete -c termmind -f -n '__fish_seen_subcommand_from edit review explain test
 
 # Ask takes any argument (no file restriction)
 complete -c termmind -f -n '__fish_seen_subcommand_from ask'
-'''
+"""
 
 
 def install_completions(shell: Optional[str] = None) -> tuple[bool, str]:

@@ -1,10 +1,15 @@
 """Tests for provider implementations."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+
 from termmind.providers import (
-    get_provider, PROVIDERS, OpenAIProvider, AnthropicProvider,
-    OllamaProvider, GeminiProvider, OpenRouterProvider,
+    PROVIDERS,
+    AnthropicProvider,
+    GeminiProvider,
+    OllamaProvider,
+    OpenAIProvider,
+    OpenRouterProvider,
+    get_provider,
 )
 
 

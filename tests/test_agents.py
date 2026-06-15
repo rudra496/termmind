@@ -1,11 +1,14 @@
 """Tests for agent system."""
 
-import pytest
-from unittest.mock import Mock
-
 from termmind.agents.engine import (
-    Agent, AgentPersona, WorkflowEngine,
-    RESEARCHER, CODER, REVIEWER, WRITER, ARCHITECT
+    ARCHITECT,
+    CODER,
+    RESEARCHER,
+    REVIEWER,
+    WRITER,
+    Agent,
+    AgentPersona,
+    WorkflowEngine,
 )
 
 
@@ -20,7 +23,7 @@ class TestAgentPersona:
             name="test",
             role="test role",
             system_prompt="You are a test",
-            capabilities=["cap1", "cap2"]
+            capabilities=["cap1", "cap2"],
         )
         assert p.name == "test"
         assert p.capabilities == ["cap1", "cap2"]
@@ -32,20 +35,20 @@ class TestAgent:
         agent = Agent(RESEARCHER, client)
         assert agent.persona.name == "researcher"
         assert agent.turns == 0
-    
+
     def test_run(self):
         client = MockAPIClient()
         agent = Agent(CODER, client)
         result = agent.run("Write a function")
         assert "Mock response" in result
         assert agent.turns == 1
-    
+
     def test_memory(self):
         client = MockAPIClient()
         agent = Agent(CODER, client)
         agent.remember("key", "value")
         assert agent.recall("key") == "value"
-    
+
     def test_reset(self):
         client = MockAPIClient()
         agent = Agent(CODER, client)
@@ -54,7 +57,7 @@ class TestAgent:
         agent.reset()
         assert agent.turns == 0
         assert len(agent.state) == 0
-    
+
     def test_max_turns(self):
         client = MockAPIClient()
         agent = Agent(CODER, client)
@@ -70,35 +73,35 @@ class TestWorkflowEngine:
         agent = Agent(RESEARCHER, client)
         engine.register_agent(agent)
         assert "researcher" in engine.list_agents()
-    
+
     def test_define_workflow(self):
         engine = WorkflowEngine()
         engine.define_workflow("test", ["a", "b"])
         assert "test" in engine.list_workflows()
-    
+
     def test_run_workflow(self):
         engine = WorkflowEngine()
         client = MockAPIClient()
-        
+
         r = Agent(RESEARCHER, client)
         c = Agent(CODER, client)
         engine.register_agent(r)
         engine.register_agent(c)
         engine.define_workflow("rc", ["researcher", "coder"])
-        
+
         result = engine.run_workflow("rc", "Build API")
         assert "results" in result
         assert "final_output" in result
         assert "researcher" in result["results"]
         assert "coder" in result["results"]
-    
+
     def test_save_load_state(self, tmp_path):
         engine = WorkflowEngine()
         engine.define_workflow("test", ["a"])
-        
+
         path = tmp_path / "state.json"
         engine.save_state(str(path))
-        
+
         engine2 = WorkflowEngine()
         engine2.load_state(str(path))
         assert "test" in engine2.list_workflows()

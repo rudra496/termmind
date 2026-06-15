@@ -1,23 +1,22 @@
 """Tests for the git operations module."""
 
 import subprocess
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from termmind.git import (
-    git_status,
-    git_diff,
-    git_commit,
-    git_log,
+    ai_commit_message,
     git_branch,
-    git_is_repo,
     git_checkout,
+    git_commit,
+    git_diff,
     git_get_changed_files,
     git_get_contributors,
     git_get_remote_url,
-    ai_commit_message,
-    _git,
+    git_is_repo,
+    git_log,
+    git_status,
 )
 
 
@@ -25,7 +24,9 @@ from termmind.git import (
 def repo_dir(tmp_path):
     """Initialize a git repo for testing."""
     subprocess.run(["git", "init"], cwd=str(tmp_path), capture_output=True)
-    subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=str(tmp_path), capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@test.com"], cwd=str(tmp_path), capture_output=True
+    )
     subprocess.run(["git", "config", "user.name", "test"], cwd=str(tmp_path), capture_output=True)
     (tmp_path / "initial.txt").write_text("initial")
     subprocess.run(["git", "add", "-A"], cwd=str(tmp_path), capture_output=True)
@@ -78,7 +79,9 @@ class TestGitBasics:
 
     def test_git_checkout(self, repo_dir):
         # Create a branch
-        subprocess.run(["git", "checkout", "-b", "test-branch"], cwd=str(repo_dir), capture_output=True)
+        subprocess.run(
+            ["git", "checkout", "-b", "test-branch"], cwd=str(repo_dir), capture_output=True
+        )
         out, rc = git_checkout("main", str(repo_dir))
         # May fail if default is master
         assert isinstance(out, str)
@@ -100,8 +103,11 @@ class TestGitBasics:
 
 class TestGitWithRemote:
     def test_git_get_remote_url(self, repo_dir):
-        subprocess.run(["git", "remote", "add", "origin", "https://github.com/test/repo.git"],
-                       cwd=str(repo_dir), capture_output=True)
+        subprocess.run(
+            ["git", "remote", "add", "origin", "https://github.com/test/repo.git"],
+            cwd=str(repo_dir),
+            capture_output=True,
+        )
         url = git_get_remote_url(str(repo_dir))
         assert "github.com" in url
 

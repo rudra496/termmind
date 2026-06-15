@@ -25,10 +25,12 @@ LANG_PATTERNS: dict[str, dict[str, Any]] = {
             re.MULTILINE,
         ),
         "classes": re.compile(
-            r"^\s*class\s+(\w+)(?:\(([^)]*)\))?", re.MULTILINE,
+            r"^\s*class\s+(\w+)(?:\(([^)]*)\))?",
+            re.MULTILINE,
         ),
         "imports": re.compile(
-            r"^(?:from\s+([\w.]+)\s+import|import\s+([\w.,\s]+))", re.MULTILINE,
+            r"^(?:from\s+([\w.]+)\s+import|import\s+([\w.,\s]+))",
+            re.MULTILINE,
         ),
         "decorators": re.compile(r"^\s*@(\w+)", re.MULTILINE),
     },
@@ -76,10 +78,12 @@ LANG_PATTERNS: dict[str, dict[str, Any]] = {
             re.MULTILINE,
         ),
         "classes": re.compile(
-            r"(?:pub\s+)?struct\s+(\w+)", re.MULTILINE,
+            r"(?:pub\s+)?struct\s+(\w+)",
+            re.MULTILINE,
         ),
         "imports": re.compile(
-            r"use\s+([\w:]+)::", re.MULTILINE,
+            r"use\s+([\w:]+)::",
+            re.MULTILINE,
         ),
         "decorators": re.compile(r"#\[(\w+)", re.MULTILINE),
     },
@@ -97,7 +101,8 @@ LANG_PATTERNS: dict[str, dict[str, Any]] = {
     },
     ".rb": {
         "functions": re.compile(
-            r"def\s+(\w+)(?:\s*\(([^)]*)\))?", re.MULTILINE,
+            r"def\s+(\w+)(?:\s*\(([^)]*)\))?",
+            re.MULTILINE,
         ),
         "classes": re.compile(r"class\s+(\w+)", re.MULTILINE),
         "imports": re.compile(r"require\s+['\"]([^'\"]+)", re.MULTILINE),
@@ -105,7 +110,8 @@ LANG_PATTERNS: dict[str, dict[str, Any]] = {
     },
     ".c": {
         "functions": re.compile(
-            r"(?:static\s+)?[\w*]+\s+(\w+)\s*\(([^)]*)\)\s*\{", re.MULTILINE,
+            r"(?:static\s+)?[\w*]+\s+(\w+)\s*\(([^)]*)\)\s*\{",
+            re.MULTILINE,
         ),
         "classes": re.compile(r"", re.MULTILINE),
         "imports": re.compile(r"#include\s+[<\"]([^>\"]+)", re.MULTILINE),
@@ -114,7 +120,8 @@ LANG_PATTERNS: dict[str, dict[str, Any]] = {
     ".cpp": {
         "functions": re.compile(
             r"(?:(?:static|virtual|inline|const|template\s*<[^>]*>)\s+)*"
-            r"[\w:*<>]+\s+(\w+)\s*\(([^)]*)\)", re.MULTILINE,
+            r"[\w:*<>]+\s+(\w+)\s*\(([^)]*)\)",
+            re.MULTILINE,
         ),
         "classes": re.compile(r"class\s+(\w+)", re.MULTILINE),
         "imports": re.compile(r"#include\s+[<\"]([^>\"]+)", re.MULTILINE),
@@ -126,6 +133,7 @@ LANG_PATTERNS: dict[str, dict[str, Any]] = {
 @dataclass
 class FunctionInfo:
     """Information about a single function/method."""
+
     name: str
     signature: str
     return_type: str = ""
@@ -136,6 +144,7 @@ class FunctionInfo:
 @dataclass
 class ClassInfo:
     """Information about a single class."""
+
     name: str
     bases: list[str] = field(default_factory=list)
     line: int = 0
@@ -145,6 +154,7 @@ class ClassInfo:
 @dataclass
 class FileIndex:
     """Parsed index for a single file."""
+
     path: str = ""
     mtime: float = 0.0
     hash: str = ""
@@ -186,6 +196,7 @@ class FileIndex:
 @dataclass
 class ProjectIndex:
     """Complete index for a project."""
+
     project_hash: str = ""
     project_root: str = ""
     files: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -245,12 +256,25 @@ def _file_hash_fast(filepath: str) -> str:
 def _get_language(ext: str) -> str:
     """Map file extension to language name."""
     lang_map = {
-        ".py": "python", ".js": "javascript", ".ts": "typescript",
-        ".go": "go", ".rs": "rust", ".java": "java", ".rb": "ruby",
-        ".c": "c", ".cpp": "cpp", ".h": "c", ".hpp": "cpp",
-        ".jsx": "javascript", ".tsx": "typescript",
-        ".swift": "swift", ".kt": "kotlin", ".scala": "scala",
-        ".lua": "lua", ".php": "php", ".cs": "csharp",
+        ".py": "python",
+        ".js": "javascript",
+        ".ts": "typescript",
+        ".go": "go",
+        ".rs": "rust",
+        ".java": "java",
+        ".rb": "ruby",
+        ".c": "c",
+        ".cpp": "cpp",
+        ".h": "c",
+        ".hpp": "cpp",
+        ".jsx": "javascript",
+        ".tsx": "typescript",
+        ".swift": "swift",
+        ".kt": "kotlin",
+        ".scala": "scala",
+        ".lua": "lua",
+        ".php": "php",
+        ".cs": "csharp",
     }
     return lang_map.get(ext.lower(), "")
 
@@ -261,14 +285,18 @@ def _parse_file(filepath: str, content: str) -> FileIndex:
     patterns = LANG_PATTERNS.get(ext)
     if not patterns:
         return FileIndex(
-            path=filepath, mtime=0, hash=_content_hash(content),
+            path=filepath,
+            mtime=0,
+            hash=_content_hash(content),
             language=_get_language(ext),
             line_count=len(content.splitlines()),
             size_bytes=len(content.encode("utf-8")),
         )
 
     file_index = FileIndex(
-        path=filepath, mtime=0, hash=_content_hash(content),
+        path=filepath,
+        mtime=0,
+        hash=_content_hash(content),
         language=_get_language(ext),
         line_count=len(content.splitlines()),
         size_bytes=len(content.encode("utf-8")),
@@ -283,17 +311,19 @@ def _parse_file(filepath: str, content: str) -> FileIndex:
             name = match.group(1)
             params = match.group(2) or ""
             ret = match.group(3) or ""
-            line_num = content[:match.start()].count("\n") + 1
+            line_num = content[: match.start()].count("\n") + 1
             sig = f"{name}({params})"
             if ret:
                 sig += f" -> {ret}"
-            file_index.functions.append({
-                "name": name,
-                "signature": sig,
-                "params": params.strip(),
-                "return_type": ret.strip(),
-                "line": line_num,
-            })
+            file_index.functions.append(
+                {
+                    "name": name,
+                    "signature": sig,
+                    "params": params.strip(),
+                    "return_type": ret.strip(),
+                    "line": line_num,
+                }
+            )
 
     # Extract classes
     class_pattern = patterns["classes"]
@@ -301,12 +331,14 @@ def _parse_file(filepath: str, content: str) -> FileIndex:
         for match in class_pattern.finditer(content):
             name = match.group(1)
             bases = [b.strip() for b in (match.group(2) or "").split(",") if b.strip()]
-            line_num = content[:match.start()].count("\n") + 1
-            file_index.classes.append({
-                "name": name,
-                "bases": bases,
-                "line": line_num,
-            })
+            line_num = content[: match.start()].count("\n") + 1
+            file_index.classes.append(
+                {
+                    "name": name,
+                    "bases": bases,
+                    "line": line_num,
+                }
+            )
 
     # Extract imports
     import_pattern = patterns["imports"]
@@ -513,9 +545,15 @@ def _incremental_update(existing: ProjectIndex, project_root: str) -> ProjectInd
             try:
                 st = os.stat(filepath)
                 existing.files[filepath] = {
-                    "path": filepath, "mtime": st.st_mtime, "hash": fast_hash,
-                    "language": _get_language(ext), "functions": [], "classes": [],
-                    "imports": [], "line_count": 0, "size_bytes": st.st_size,
+                    "path": filepath,
+                    "mtime": st.st_mtime,
+                    "hash": fast_hash,
+                    "language": _get_language(ext),
+                    "functions": [],
+                    "classes": [],
+                    "imports": [],
+                    "line_count": 0,
+                    "size_bytes": st.st_size,
                 }
             except OSError:
                 continue
@@ -546,8 +584,9 @@ def _incremental_update(existing: ProjectIndex, project_root: str) -> ProjectInd
     return existing
 
 
-def query_functions(project_root: str, name_pattern: str = "",
-                    filepath: str = "") -> list[dict[str, Any]]:
+def query_functions(
+    project_root: str, name_pattern: str = "", filepath: str = ""
+) -> list[dict[str, Any]]:
     """Query functions in the project index.
 
     Args:
@@ -720,4 +759,5 @@ def clear_project_index(project_root: str) -> None:
     mdir = _get_memory_dir(project_root)
     if mdir.exists():
         import shutil
+
         shutil.rmtree(mdir, ignore_errors=True)

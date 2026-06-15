@@ -8,26 +8,30 @@ from typing import Any, Optional
 
 import httpx
 
-USER_AGENT = "TermMind/1.0.0"
+from . import __version__
+
+USER_AGENT = f"TermMind/{__version__}"
 _TIMEOUT = httpx.Timeout(120, connect=10)
 _STREAM_TIMEOUT = httpx.Timeout(120, connect=10)
 _OLLAMA_TIMEOUT = httpx.Timeout(300, connect=10)
 
-_shared_client: Optional[httpx.Client] = None
+_shared_clients: dict[int, httpx.Client] = {}
 
 
 def _get_shared_client(timeout: httpx.Timeout = _TIMEOUT) -> httpx.Client:
-    global _shared_client
-    if _shared_client is None or _shared_client.is_closed:
-        _shared_client = httpx.Client(timeout=timeout)
-    return _shared_client
+    global _shared_clients
+    t_val = timeout.read or 120
+    if t_val not in _shared_clients or _shared_clients[t_val].is_closed:
+        _shared_clients[t_val] = httpx.Client(timeout=timeout)
+    return _shared_clients[t_val]
 
 
 def _close_shared_client() -> None:
-    global _shared_client
-    if _shared_client is not None:
-        _shared_client.close()
-        _shared_client = None
+    global _shared_clients
+    for client in _shared_clients.values():
+        if not client.is_closed:
+            client.close()
+    _shared_clients.clear()
 
 
 class BaseProvider(ABC):
@@ -89,7 +93,9 @@ class OpenAICompatibleProvider(BaseProvider):
         if self.base_url:
             self.base_url = self.base_url.rstrip("/")
 
-    def send_message(self, messages: list[dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
+    def send_message(
+        self, messages: list[dict[str, str]], stream: bool = False, **kw: Any
+    ) -> Generator[str, None, None]:
         body = {
             "model": self.model,
             "messages": messages,
@@ -101,29 +107,35 @@ class OpenAICompatibleProvider(BaseProvider):
         headers = self._headers()
 
         if not stream:
-            resp = _retry_request(lambda: _get_shared_client(self._timeout).post(url, json=body, headers=headers))
+            resp = _retry_request(
+                lambda: _get_shared_client(self._timeout).post(url, json=body, headers=headers)
+            )
             if resp.status_code != 200:
                 raise Exception(f"{self.name.title()} error {resp.status_code}: {resp.text}")
             yield resp.json()["choices"][0]["message"]["content"]
             return
 
-        with httpx.Client(timeout=self._timeout) as client, \
-                client.stream("POST", url, json=body, headers=headers) as resp:
-                if resp.status_code != 200:
-                    raise Exception(f"{self.name.title()} error {resp.status_code}: {resp.read().decode()}")
-                for line in resp.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data.strip() == "[DONE]":
-                        break
-                    try:
-                        delta = json.loads(data).get("choices", [{}])[0].get("delta", {})
-                        c = delta.get("content", "")
-                        if c:
-                            yield c
-                    except json.JSONDecodeError:
-                        continue
+        with (
+            httpx.Client(timeout=self._timeout) as client,
+            client.stream("POST", url, json=body, headers=headers) as resp,
+        ):
+            if resp.status_code != 200:
+                raise Exception(
+                    f"{self.name.title()} error {resp.status_code}: {resp.read().decode()}"
+                )
+            for line in resp.iter_lines():
+                if not line or not line.startswith("data: "):
+                    continue
+                data = line[6:]
+                if data.strip() == "[DONE]":
+                    break
+                try:
+                    delta = json.loads(data).get("choices", [{}])[0].get("delta", {})
+                    c = delta.get("content", "")
+                    if c:
+                        yield c
+                except json.JSONDecodeError:
+                    continue
 
     def list_models(self) -> list[str]:
         return list(self._models)
@@ -154,12 +166,13 @@ def _retry_request(func, max_retries: int = 3, retry_on: Optional[list[int]] = N
             if hasattr(resp, "status_code") and resp.status_code in retry_on:
                 wait = 2 ** (attempt + 1)
                 time.sleep(wait)
+                last_err = Exception(f"HTTP error {resp.status_code}")
                 continue
             return resp
         except (httpx.ConnectError, httpx.TimeoutException) as e:
             last_err = e
             if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
                 continue
             raise
     if last_err:
@@ -229,7 +242,9 @@ class AnthropicProvider(BaseProvider):
                 anth_messages.append({"role": msg["role"], "content": msg["content"]})
         return system, anth_messages
 
-    def send_message(self, messages: list[dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
+    def send_message(
+        self, messages: list[dict[str, str]], stream: bool = False, **kw: Any
+    ) -> Generator[str, None, None]:
         system, anth_messages = self._convert_messages(messages)
         body: dict[str, Any] = {
             "model": self.model,
@@ -244,8 +259,10 @@ class AnthropicProvider(BaseProvider):
         headers = self._anthropic_headers()
 
         if not stream:
+
             def do_req():
                 return _get_shared_client().post(url, json=body, headers=headers)
+
             resp = _retry_request(do_req)
             if resp.status_code != 200:
                 raise Exception(f"Anthropic error {resp.status_code}: {resp.text}")
@@ -255,24 +272,26 @@ class AnthropicProvider(BaseProvider):
                     yield block["text"]
             return
 
-        with httpx.Client(timeout=_TIMEOUT) as client, \
-                client.stream("POST", url, json=body, headers=headers) as resp:
-                if resp.status_code != 200:
-                    raise Exception(f"Anthropic error {resp.status_code}: {resp.read().decode()}")
-                for line in resp.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data.strip() == "[DONE]":
-                        break
-                    try:
-                        parsed = json.loads(data)
-                        if parsed.get("type") == "content_block_delta":
-                            text = parsed.get("delta", {}).get("text", "")
-                            if text:
-                                yield text
-                    except json.JSONDecodeError:
-                        continue
+        with (
+            httpx.Client(timeout=_TIMEOUT) as client,
+            client.stream("POST", url, json=body, headers=headers) as resp,
+        ):
+            if resp.status_code != 200:
+                raise Exception(f"Anthropic error {resp.status_code}: {resp.read().decode()}")
+            for line in resp.iter_lines():
+                if not line or not line.startswith("data: "):
+                    continue
+                data = line[6:]
+                if data.strip() == "[DONE]" or '"type": "message_stop"' in data:
+                    break
+                try:
+                    parsed = json.loads(data)
+                    if parsed.get("type") == "content_block_delta":
+                        text = parsed.get("delta", {}).get("text", "")
+                        if text:
+                            yield text
+                except json.JSONDecodeError:
+                    continue
 
     def list_models(self) -> list[str]:
         return list(self._models)
@@ -443,7 +462,9 @@ class CohereProvider(BaseProvider):
             "Authorization": f"Bearer {self.api_key}",
         }
 
-    def send_message(self, messages: list[dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
+    def send_message(
+        self, messages: list[dict[str, str]], stream: bool = False, **kw: Any
+    ) -> Generator[str, None, None]:
         # Convert to Cohere's chat format
         system = ""
         chat_history = []
@@ -452,6 +473,8 @@ class CohereProvider(BaseProvider):
             if msg["role"] == "system":
                 system = msg["content"]
             elif msg["role"] == "user":
+                if user_message:
+                    chat_history.append({"role": "USER", "message": user_message})
                 user_message = msg["content"]
             elif msg["role"] == "assistant":
                 chat_history.append({"role": "CHATBOT", "message": msg["content"]})
@@ -472,8 +495,10 @@ class CohereProvider(BaseProvider):
         headers = self._cohere_headers()
 
         if not stream:
+
             def do_req():
                 return _get_shared_client().post(url, json=body, headers=headers)
+
             resp = _retry_request(do_req)
             if resp.status_code != 200:
                 raise Exception(f"Cohere error {resp.status_code}: {resp.text}")
@@ -482,21 +507,23 @@ class CohereProvider(BaseProvider):
             return
 
         body["stream"] = True
-        with httpx.Client(timeout=_TIMEOUT) as client, \
-                client.stream("POST", url, json=body, headers=headers) as resp:
-                if resp.status_code != 200:
-                    raise Exception(f"Cohere error {resp.status_code}: {resp.read().decode()}")
-                for line in resp.iter_lines():
-                    if not line:
-                        continue
-                    try:
-                        parsed = json.loads(line)
-                        if parsed.get("event_type") == "text-generation":
-                            text = parsed.get("text", "")
-                            if text:
-                                yield text
-                    except json.JSONDecodeError:
-                        continue
+        with (
+            httpx.Client(timeout=_TIMEOUT) as client,
+            client.stream("POST", url, json=body, headers=headers) as resp,
+        ):
+            if resp.status_code != 200:
+                raise Exception(f"Cohere error {resp.status_code}: {resp.read().decode()}")
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                try:
+                    parsed = json.loads(line)
+                    if parsed.get("event_type") == "text-generation":
+                        text = parsed.get("text", "")
+                        if text:
+                            yield text
+                except json.JSONDecodeError:
+                    continue
 
     def list_models(self) -> list[str]:
         return list(self._models)
@@ -547,9 +574,11 @@ class OllamaProvider(OpenAICompatibleProvider):
         except Exception:
             return False
 
-    def send_message(self, messages: list[dict[str, str]], stream: bool = False, **kw: Any) -> Generator[str, None, None]:
+    def send_message(
+        self, messages: list[dict[str, str]], stream: bool = False, **kw: Any
+    ) -> Generator[str, None, None]:
         kw["max_tokens"] = kw.get("max_tokens", 4096)
-        return super().send_message(messages, stream, **kw)
+        yield from super().send_message(messages, stream, **kw)
 
 
 # Provider registry

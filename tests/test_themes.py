@@ -1,6 +1,5 @@
 """Tests for themes."""
 
-import pytest
 from termmind.themes import get_theme, list_themes
 
 

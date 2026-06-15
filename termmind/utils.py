@@ -36,14 +36,38 @@ def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
 def detect_language(filename: str) -> Optional[str]:
     """Detect programming language from file extension."""
     ext_map = {
-        ".py": "python", ".js": "javascript", ".ts": "typescript", ".go": "go",
-        ".rs": "rust", ".java": "java", ".rb": "ruby", ".c": "c", ".cpp": "cpp",
-        ".h": "c", ".cs": "csharp", ".php": "php", ".sh": "bash", ".bash": "bash",
-        ".yaml": "yaml", ".yml": "yaml", ".toml": "toml", ".json": "json",
-        ".md": "markdown", ".html": "html", ".css": "css", ".sql": "sql",
-        ".swift": "swift", ".kt": "kotlin", ".scala": "scala", ".lua": "lua",
-        ".r": "r", ".dart": "dart", ".jsx": "jsx", ".tsx": "tsx",
-        ".dockerfile": "docker", ".makefile": "makefile",
+        ".py": "python",
+        ".js": "javascript",
+        ".ts": "typescript",
+        ".go": "go",
+        ".rs": "rust",
+        ".java": "java",
+        ".rb": "ruby",
+        ".c": "c",
+        ".cpp": "cpp",
+        ".h": "c",
+        ".cs": "csharp",
+        ".php": "php",
+        ".sh": "bash",
+        ".bash": "bash",
+        ".yaml": "yaml",
+        ".yml": "yaml",
+        ".toml": "toml",
+        ".json": "json",
+        ".md": "markdown",
+        ".html": "html",
+        ".css": "css",
+        ".sql": "sql",
+        ".swift": "swift",
+        ".kt": "kotlin",
+        ".scala": "scala",
+        ".lua": "lua",
+        ".r": "r",
+        ".dart": "dart",
+        ".jsx": "jsx",
+        ".tsx": "tsx",
+        ".dockerfile": "docker",
+        ".makefile": "makefile",
     }
     ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     # Special cases
@@ -75,4 +99,4 @@ def format_file_path(path: str) -> str:
 def truncate_text(text: str, max_length: int = 2000, suffix: str = "...") -> str:
     if len(text) <= max_length:
         return text
-    return text[:max_length - len(suffix)] + suffix
+    return text[: max_length - len(suffix)] + suffix

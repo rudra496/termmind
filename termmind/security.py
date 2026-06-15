@@ -11,6 +11,7 @@ from .file_ops import find_files, read_file
 @dataclass
 class SecurityIssue:
     """A single security issue found in code."""
+
     severity: str  # critical, high, medium, low, info
     category: str
     title: str
@@ -36,6 +37,7 @@ class SecurityIssue:
 @dataclass
 class ScanResult:
     """Results from a security scan."""
+
     files_scanned: int = 0
     issues: list[SecurityIssue] = field(default_factory=list)
     scan_time_ms: float = 0.0
@@ -112,7 +114,9 @@ _SECURITY_RULES: list[dict[str, Any]] = [
     },
     # Insecure random
     {
-        "pattern": re.compile(r"""random\.(?:random|randint|choice|randrange)\s*\(""", re.IGNORECASE),
+        "pattern": re.compile(
+            r"""random\.(?:random|randint|choice|randrange)\s*\(""", re.IGNORECASE
+        ),
         "severity": "medium",
         "category": "Cryptography",
         "title": "Use of non-cryptographic random",
@@ -134,7 +138,9 @@ _SECURITY_RULES: list[dict[str, Any]] = [
     },
     # Insecure HTTP
     {
-        "pattern": re.compile(r"""https?://(?:localhost|127\.0\.0\.1|0\.0\.0\.0)[:/]""", re.IGNORECASE),
+        "pattern": re.compile(
+            r"""https?://(?:localhost|127\.0\.0\.1|0\.0\.0\.0)[:/]""", re.IGNORECASE
+        ),
         "severity": "low",
         "category": "Network",
         "title": "Insecure local HTTP connection",
@@ -177,7 +183,9 @@ _SECURITY_RULES: list[dict[str, Any]] = [
     },
     # CORS wildcard
     {
-        "pattern": re.compile(r"""(?:Access-Control-Allow-Origin|CORS_ORIGINS|allow_origin)\s*[:=]\s*['\"]?\*['\"]?"""),
+        "pattern": re.compile(
+            r"""(?:Access-Control-Allow-Origin|CORS_ORIGINS|allow_origin)\s*[:=]\s*['\"]?\*['\"]?"""
+        ),
         "severity": "medium",
         "category": "Web Security",
         "title": "Wildcard CORS configuration",
@@ -195,7 +203,9 @@ _SECURITY_RULES: list[dict[str, Any]] = [
     },
     # Insecure SSL
     {
-        "pattern": re.compile(r"""(?:verify\s*=\s*False|CERT_NONE|ssl\._create_unverified_context)"""),
+        "pattern": re.compile(
+            r"""(?:verify\s*=\s*False|CERT_NONE|ssl\._create_unverified_context)"""
+        ),
         "severity": "high",
         "category": "Network Security",
         "title": "SSL verification disabled",
@@ -226,18 +236,20 @@ def scan_file(filepath: str, content: Optional[str] = None) -> list[SecurityIssu
             continue
 
         for match in rule["pattern"].finditer(content):
-            line_num = content[:match.start()].count("\n") + 1
+            line_num = content[: match.start()].count("\n") + 1
             snippet = lines[line_num - 1].strip() if line_num <= len(lines) else ""
-            issues.append(SecurityIssue(
-                severity=rule["severity"],
-                category=rule["category"],
-                title=rule["title"],
-                description=rule["description"],
-                file=filepath,
-                line=line_num,
-                code_snippet=snippet[:120],
-                recommendation=rule.get("recommendation", ""),
-            ))
+            issues.append(
+                SecurityIssue(
+                    severity=rule["severity"],
+                    category=rule["category"],
+                    title=rule["title"],
+                    description=rule["description"],
+                    file=filepath,
+                    line=line_num,
+                    code_snippet=snippet[:120],
+                    recommendation=rule.get("recommendation", ""),
+                )
+            )
 
     return issues
 
@@ -245,13 +257,31 @@ def scan_file(filepath: str, content: Optional[str] = None) -> list[SecurityIssu
 def scan_directory(directory: str, max_depth: int = 6) -> ScanResult:
     """Scan a directory for security issues."""
     import time
+
     start = time.time()
 
     result = ScanResult()
     files = find_files(directory, max_depth=max_depth)
 
     # Filter to source files
-    source_exts = {".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs", ".java", ".rb", ".php", ".c", ".cpp", ".yaml", ".yml", ".toml", ".json"}
+    source_exts = {
+        ".py",
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".go",
+        ".rs",
+        ".java",
+        ".rb",
+        ".php",
+        ".c",
+        ".cpp",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".json",
+    }
     source_files = [f for f in files if Path(f).suffix.lower() in source_exts]
 
     result.files_scanned = len(source_files)

@@ -52,7 +52,9 @@ def agent_list():
 @agent_cmd.command("run")
 @click.argument("workflow")
 @click.argument("task")
-@click.option("--agents", "-a", default="researcher,coder,reviewer", help="Comma-separated agent names")
+@click.option(
+    "--agents", "-a", default="researcher,coder,reviewer", help="Comma-separated agent names"
+)
 @click.option("--provider", "-p", default="", help="Override provider")
 @click.option("--model", "-m", default="", help="Override model")
 @click.option("--save", "-s", is_flag=True, help="Save workflow state")
@@ -98,7 +100,11 @@ def agent_run(workflow, task, agents, provider, model, save, output):
         console.print()
 
     console.print("[bold green]Final Output:[/bold green]")
-    console.print(result["final_output"][:500] + "..." if len(result["final_output"]) > 500 else result["final_output"])
+    console.print(
+        result["final_output"][:500] + "..."
+        if len(result["final_output"]) > 500
+        else result["final_output"]
+    )
 
     # Save if requested
     if save:

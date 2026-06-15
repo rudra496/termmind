@@ -36,7 +36,9 @@ def clear_cache() -> None:
 def _extract_imports(content: str) -> set[str]:
     """Extract import references from Python code."""
     imports: set[str] = set()
-    for m in re.finditer(r"^(?:from\s+([\w.]+)\s+import|import\s+([\w.,\s]+))", content, re.MULTILINE):
+    for m in re.finditer(
+        r"^(?:from\s+([\w.]+)\s+import|import\s+([\w.,\s]+))", content, re.MULTILINE
+    ):
         module = m.group(1) or m.group(2) or ""
         for part in module.replace(" as ", ",").split(","):
             part = part.strip().split(".")[0].strip()
@@ -83,9 +85,15 @@ def _score_file(filepath: str, query: str, cwd: str) -> float:
 
     # Bonus for common project files
     important_files = {
-        "readme.md": 5.0, "pyproject.toml": 3.0, "setup.py": 3.0,
-        "package.json": 3.0, "makefile": 3.0, "dockerfile": 3.0,
-        ".env.example": 2.0, "config.py": 2.0, "config.ts": 2.0,
+        "readme.md": 5.0,
+        "pyproject.toml": 3.0,
+        "setup.py": 3.0,
+        "package.json": 3.0,
+        "makefile": 3.0,
+        "dockerfile": 3.0,
+        ".env.example": 2.0,
+        "config.py": 2.0,
+        "config.ts": 2.0,
     }
     if rel_path.lower() in important_files:
         score += important_files[rel_path.lower()]
@@ -104,7 +112,8 @@ def extract_relevant_files(query: str, directory: str = ".", max_files: int = 20
     refs: set[str] = set()
     for match in re.finditer(
         r"""[\w./\-]+\.(?:py|js|ts|go|rs|java|rb|c|cpp|h|cs|php|sh|bash|yaml|yml|toml|json|md|txt|html|css|sql|r|swift|kt|scala|lua|vim)""",
-        query, re.IGNORECASE
+        query,
+        re.IGNORECASE,
     ):
         refs.add(match.group())
     for match in re.finditer(r'["\']([\w./\-]+\.\w+)["\']', query):
@@ -160,6 +169,7 @@ def build_context(
 
     # File tree
     from .file_ops import build_file_tree
+
     tree = build_file_tree(directory, max_depth=4)
     if tree:
         parts.append(f"## Project Structure\n```\n{tree}\n```\n")
@@ -196,6 +206,7 @@ def build_context(
     # Code index context (if available)
     try:
         from .memory import get_context_for_query
+
         index_ctx = get_context_for_query(directory, query)
         if index_ctx:
             parts.append(index_ctx + "\n")

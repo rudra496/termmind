@@ -14,6 +14,7 @@ Rules:
 - End with a simple follow-up question to encourage curiosity
 - Use emojis occasionally to make it friendly"""
 
+
 class ELI5Mode:
     """Manages Explain Like I'm 5 mode for AI responses."""
 
