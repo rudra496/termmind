@@ -1,13 +1,13 @@
 """ReAct loop for the autonomous agent."""
 
 import json
-from typing import Any, Callable, Dict, List, Optional
 
 from termmind.agents.core.tools import default_registry
 
+
 class AgentLoop:
     """Executes a Reasoning and Action (ReAct) loop."""
-    
+
     def __init__(self, provider, max_steps: int = 10):
         """
         Initialize the loop with an LLM provider.
@@ -15,15 +15,15 @@ class AgentLoop:
         """
         self.provider = provider
         self.max_steps = max_steps
-        self.history: List[Dict[str, str]] = []
+        self.history: list[dict[str, str]] = []
 
     def execute(self, prompt: str) -> str:
         """Run the loop given an initial prompt."""
         self.history.append({"role": "user", "content": prompt})
-        
+
         tools_schema = default_registry.get_tool_schemas()
-        
-        # In a real implementation we would pass `tools=tools_schema` 
+
+        # In a real implementation we would pass `tools=tools_schema`
         # to the provider API. For now, we inject the schema into the system prompt.
         system_prompt = (
             "You are an autonomous AI agent capable of using tools.\n"
@@ -34,7 +34,7 @@ class AgentLoop:
             "When you have the final answer, just respond with the answer as text."
         )
 
-        for step in range(self.max_steps):
+        for _step in range(self.max_steps):
             # Send message to LLM
             response_text = ""
             try:
@@ -59,16 +59,16 @@ class AgentLoop:
                     end = response_text.rfind('}') + 1
                     json_str = response_text[start:end]
                     data = json.loads(json_str)
-                    
+
                     tool_call = data.get("tool_call", {})
                     name = tool_call.get("name")
                     args = tool_call.get("arguments", {})
-                    
+
                     # Execute tool
                     tool_result = default_registry.execute(name, args)
-                    
+
                     self.history.append({
-                        "role": "user", 
+                        "role": "user",
                         "content": f"Tool {name} result:\n{tool_result}"
                     })
                 else:

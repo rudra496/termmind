@@ -2,13 +2,13 @@
 
 import ast
 from pathlib import Path
-from typing import Dict, List
+
 
 class CodeAnalyzer(ast.NodeVisitor):
     def __init__(self):
-        self.classes: List[Dict] = []
-        self.functions: List[Dict] = []
-        
+        self.classes: list[dict] = []
+        self.functions: list[dict] = []
+
     def visit_ClassDef(self, node: ast.ClassDef):
         docstring = ast.get_docstring(node)
         self.classes.append({
@@ -18,7 +18,7 @@ class CodeAnalyzer(ast.NodeVisitor):
             "methods": [n.name for n in node.body if isinstance(n, ast.FunctionDef)]
         })
         self.generic_visit(node)
-        
+
     def visit_FunctionDef(self, node: ast.FunctionDef):
         docstring = ast.get_docstring(node)
         self.functions.append({
@@ -29,12 +29,12 @@ class CodeAnalyzer(ast.NodeVisitor):
         })
         self.generic_visit(node)
 
-def analyze_file(filepath: str) -> Dict:
+def analyze_file(filepath: str) -> dict:
     """Analyze a Python file and return its semantic graph structure."""
     path = Path(filepath)
     if not path.exists() or not path.name.endswith(".py"):
         return {"error": "Invalid Python file"}
-        
+
     try:
         source = path.read_text(encoding="utf-8")
         tree = ast.parse(source)

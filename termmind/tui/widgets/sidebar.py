@@ -1,14 +1,14 @@
 """Sidebar widget for TermMind TUI."""
 
-from textual.widgets import DirectoryTree
 from textual.containers import Vertical
-from textual.widgets import Label
+from textual.widgets import DirectoryTree, Label
+
 
 class Sidebar(Vertical):
     """Sidebar containing file tree and context info."""
 
-    def __init__(self, id: str, path: str):
-        super().__init__(id=id)
+    def __init__(self, widget_id: str, path: str):
+        super().__init__(id=widget_id)
         self.path = path
 
     def compose(self):

@@ -1,7 +1,5 @@
 """Docker sandbox execution environment for TermMind."""
 
-import os
-from pathlib import Path
 try:
     import docker
 except ImportError:
@@ -13,7 +11,7 @@ class DockerSandbox:
     def __init__(self, image: str = "python:3.11-slim"):
         self.image = image
         self.client = docker.from_env() if docker else None
-        
+
     def is_available(self) -> bool:
         return self.client is not None
 
@@ -21,7 +19,7 @@ class DockerSandbox:
         """Run a python script securely inside a container."""
         if not self.is_available():
             return "Error: Docker SDK not available. Install 'docker' module."
-            
+
         try:
             container = self.client.containers.run(
                 self.image,

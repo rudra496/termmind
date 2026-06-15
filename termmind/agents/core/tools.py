@@ -1,12 +1,12 @@
 """Tool registry for the autonomous agent."""
 
-import os
 import subprocess
-from typing import Any, Callable
+from typing import Callable
+
 
 class ToolRegistry:
     """Registry for autonomous tools."""
-    
+
     def __init__(self):
         self.tools = {}
 
@@ -39,7 +39,7 @@ default_registry = ToolRegistry()
 def read_file(path: str) -> str:
     """Read the contents of a file."""
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return f.read()
     except Exception as e:
         return str(e)

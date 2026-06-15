@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -36,13 +37,13 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             payload = json.loads(data)
-            
+
             # Simulated streaming for now
             await websocket.send_json({"type": "status", "message": "Thinking..."})
             await asyncio.sleep(0.5)
-            
+
             result = orchestrator.run_task(payload.get("message", ""))
-            
+
             await websocket.send_json({"type": "response", "message": result})
     except WebSocketDisconnect:
         pass
