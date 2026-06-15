@@ -1,13 +1,11 @@
 """API client for OpenAI-compatible endpoints with streaming support."""
 
-import json
 from collections.abc import Generator
-from typing import Any, Optional
-
-import httpx
+from typing import Optional
 
 from .config import get_provider_info, load_config
-from .providers import get_provider, _get_shared_client
+from .providers import _get_shared_client, get_provider
+
 
 class APIError(Exception):
     def __init__(self, message: str, status_code: int = 0):
@@ -30,7 +28,7 @@ class APIClient:
         cfg = load_config()
         self.provider_name = provider or cfg.get("provider", "ollama")
         info = get_provider_info(self.provider_name)
-        
+
         self.api_key = api_key if api_key is not None else cfg.get("api_key", "")
         self.model = model or cfg.get("model", info.get("default_model", ""))
         self.base_url = (base_url or info.get("base_url", "")).rstrip("/")
@@ -46,7 +44,7 @@ class APIClient:
                 model=self.model,
             )
         except ValueError as e:
-            raise APIError(str(e))
+            raise APIError(str(e)) from e
 
     def _build_messages(
         self, messages: list[dict[str, str]], system_prompt: Optional[str] = None
@@ -75,16 +73,16 @@ class APIClient:
         prompt_text = "".join(m.get("content", "") for m in built_msgs)
         try:
             gen = self._impl.send_message(
-                built_msgs, 
-                stream=False, 
-                max_tokens=self.max_tokens, 
+                built_msgs,
+                stream=False,
+                max_tokens=self.max_tokens,
                 temperature=self.temperature
             )
             response = "".join(list(gen))
             self._update_usage(prompt_text, response)
             return response.strip()
         except Exception as e:
-            raise APIError(str(e))
+            raise APIError(str(e)) from e
 
     def chat_stream(
         self, messages: list[dict[str, str]], system_prompt: Optional[str] = None
@@ -95,9 +93,9 @@ class APIClient:
         response_text = ""
         try:
             gen = self._impl.send_message(
-                built_msgs, 
-                stream=True, 
-                max_tokens=self.max_tokens, 
+                built_msgs,
+                stream=True,
+                max_tokens=self.max_tokens,
                 temperature=self.temperature
             )
             for chunk in gen:
@@ -105,12 +103,12 @@ class APIClient:
                 yield chunk
             self._update_usage(prompt_text, response_text)
         except Exception as e:
-            raise APIError(str(e))
+            raise APIError(str(e)) from e
 
     def get_cost(self) -> float:
         """Estimate session cost based on usage."""
         return self._impl.estimate_cost(
-            self.usage["prompt_tokens"], 
+            self.usage["prompt_tokens"],
             self.usage["completion_tokens"]
         )
 
@@ -121,7 +119,7 @@ class APIClient:
         """Generate vector embedding for a given text."""
         url = f"{self.base_url}/embeddings"
         headers = self._impl._headers() if hasattr(self._impl, "_headers") else {}
-        
+
         # Determine the model to use for embeddings based on provider
         model = self.model
         if self.provider_name == "openai":

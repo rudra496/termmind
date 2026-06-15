@@ -23,11 +23,11 @@ def mock_config():
             "cost_per_1k_input": 0.00015,
             "cost_per_1k_output": 0.0006,
         }
-        
+
         mock_provider_instance = MagicMock()
         mock_provider_instance.estimate_cost.return_value = 0.00045
         m_gp.return_value = mock_provider_instance
-        
+
         yield mc, mp, m_gp, mock_provider_instance
 
 
@@ -86,10 +86,10 @@ class TestAPIClient:
     def test_chat_success(self, mock_config):
         _, _, _, mock_provider = mock_config
         mock_provider.send_message.return_value = (chunk for chunk in ["Hello! This is a longer string so tokens > 0."])
-        
+
         client = APIClient()
         result = client.chat([{"role": "user", "content": "hello world! this is a long prompt to ensure tokens > 0"}])
-        
+
         assert result == "Hello! This is a longer string so tokens > 0."
         assert client.usage["completion_tokens"] > 0
         assert client.usage["prompt_tokens"] > 0
@@ -97,7 +97,7 @@ class TestAPIClient:
     def test_chat_api_error(self, mock_config):
         _, _, _, mock_provider = mock_config
         mock_provider.send_message.side_effect = Exception("API error 401: Unauthorized")
-        
+
         client = APIClient()
         with pytest.raises(APIError, match="401"):
             client.chat([{"role": "user", "content": "hi"}])
@@ -105,10 +105,10 @@ class TestAPIClient:
     def test_chat_stream_success(self, mock_config):
         _, _, _, mock_provider = mock_config
         mock_provider.send_message.return_value = (chunk for chunk in ["Hello ", "world this is longer."])
-        
+
         client = APIClient()
         result = list(client.chat_stream([{"role": "user", "content": "hello world! this is a long prompt to ensure tokens > 0"}]))
-        
+
         assert result == ["Hello ", "world this is longer."]
         assert client.usage["completion_tokens"] > 0
         assert client.usage["prompt_tokens"] > 0
@@ -116,7 +116,7 @@ class TestAPIClient:
     def test_chat_stream_error(self, mock_config):
         _, _, _, mock_provider = mock_config
         mock_provider.send_message.side_effect = Exception("API error 500: Server error")
-        
+
         client = APIClient()
         with pytest.raises(APIError, match="500"):
             list(client.chat_stream([{"role": "user", "content": "hi"}]))
@@ -124,7 +124,7 @@ class TestAPIClient:
     def test_chat_empty_response(self, mock_config):
         _, _, _, mock_provider = mock_config
         mock_provider.send_message.return_value = (chunk for chunk in ["   "])
-        
+
         client = APIClient()
         result = client.chat([{"role": "user", "content": "hi"}])
         assert result == ""
