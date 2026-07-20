@@ -3,7 +3,6 @@
 import importlib.util
 import os
 import re
-from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -13,14 +12,13 @@ if TYPE_CHECKING:
 PLUGIN_DIR = Path.home() / ".termmind" / "plugins"
 
 
-class BasePlugin(ABC):
+class BasePlugin:
     """Base class for TermMind plugins."""
 
     name: str = "unnamed"
     description: str = ""
 
-    @abstractmethod
-    def on_start(self, session: "Session") -> None:
+    def on_start(self, session: "Session") -> None:  # noqa: B027
         """Called when a chat session starts."""
 
     def on_message(self, message: str, role: str = "user") -> None:  # noqa: B027
