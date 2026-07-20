@@ -46,6 +46,10 @@ class APIClient:
         except ValueError as e:
             raise APIError(str(e)) from e
 
+    @property
+    def provider(self) -> str:
+        return self.provider_name
+
     def _build_messages(
         self, messages: list[dict[str, str]], system_prompt: Optional[str] = None
     ) -> list[dict[str, str]]:
