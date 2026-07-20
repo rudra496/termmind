@@ -32,9 +32,9 @@ from .themes import get_theme
 HISTORY_FILE = Path.home() / ".termmind" / "history"
 BANNER = f"""
 [bold cyan]  ╔═══════════════════════════════════╗
-  ║      [bold white]T e r m M i n d[/bold white]                ║
-  ║   [dim]AI Terminal Assistant v{__version__}[/dim]       ║
-  ║   [dim]9 Providers • Security • Generate[/dim]  ║
+  ║          [bold white]T e r m M i n d[/bold white]          ║
+  ║   [dim]AI Terminal Assistant v{__version__}[/dim]    ║
+  ║ [dim]9 Providers • Security • Generate[/dim] ║
   ╚═══════════════════════════════════╝[/bold cyan]
 """
 
