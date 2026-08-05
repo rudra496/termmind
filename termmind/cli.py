@@ -12,6 +12,7 @@ from typing import Optional
 import click
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.filters import has_completions
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
@@ -146,17 +147,25 @@ def _get_console() -> Console:
 def _get_key_bindings():
     kb = KeyBindings()
 
+    @kb.add("enter", filter=has_completions)
+    def _(event):
+        event.current_buffer.complete_state = None
+
+    @kb.add("enter", filter=~has_completions)
+    def _(event):
+        event.current_buffer.validate_and_handle()
+
     @kb.add("escape", "enter")
     def _(event):
         event.current_buffer.insert_text("\n")
 
-    @kb.add("up")
+    @kb.add("up", filter=~has_completions)
     def _history_back(event):
         buff = event.current_buffer
         if buff.document.cursor_position_row == 0:
             buff.history_backward()
 
-    @kb.add("down")
+    @kb.add("down", filter=~has_completions)
     def _history_forward(event):
         buff = event.current_buffer
         doc = buff.document
@@ -369,7 +378,7 @@ def chat(provider: Optional[str], model: Optional[str], system: Optional[str]):
     HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
     session = PromptSession(
         history=FileHistory(str(HISTORY_FILE)),
-        completer=WordCompleter(SLASH_COMMANDS),
+        completer=WordCompleter(SLASH_COMMANDS, WORD=True),
         key_bindings=_get_key_bindings(),
         multiline=True,
         prompt_continuation="... ",
