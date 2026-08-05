@@ -1,13 +1,12 @@
 name: Welcome New Contributors
-
 on:
-  pull_request_target:
-    types: [opened, reopened]
   issues:
     types: [opened]
-
+  pull_request_target:
+    types: [opened]
 jobs:
   welcome:
+    if: ${{ github.event.issue.user.type != 'Bot' && github.event.pull_request.user.type != 'Bot' }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -15,16 +14,6 @@ jobs:
     steps:
       - uses: actions/first-interaction@v3
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          issue_message: >
-            👋 Welcome to TermMind! Thank you for opening your first issue.
-            We appreciate your contribution. A maintainer will review it shortly.
-            In the meantime, please make sure you've included enough context
-            (steps to reproduce, expected behavior, environment details).
-          pr_message: >
-            👋 Welcome to TermMind! Thank you for your first pull request!
-            We appreciate your contribution. Please make sure:
-            - Tests pass (`pytest tests/ -q`)
-            - Linting passes (`ruff check termmind/`)
-            - You've described your changes clearly
-            A maintainer will review your PR soon.
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: "Thanks for opening your first issue! We'll review it soon."
+          pr_message: "Welcome! Thanks for your first PR. A maintainer will review it shortly."
