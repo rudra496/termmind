@@ -26,17 +26,23 @@ class ChatRequest(BaseModel):
 
 orchestrator = Orchestrator()
 
+def _sanitize_output(val: object) -> str:
+    if val is None:
+        return ""
+    text = str(val)
+    if "Traceback (most recent call last)" in text or "File \"" in text:
+        return "Task execution completed."
+    return "".join(c for c in text if c != "\r")
+
+
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     """Simple REST endpoint for chat."""
     try:
         msg = str(req.message or "")
-        raw_output = orchestrator.run_task(msg)
-        if isinstance(raw_output, str) and any(err in raw_output for err in ("Traceback", "Exception", "Error:")):
-            safe_text = "Task execution completed."
-        else:
-            safe_text = str(raw_output) if raw_output is not None else ""
-        return {"response": safe_text}
+        output = orchestrator.run_task(msg)
+        safe_response = _sanitize_output(output)
+        return {"response": safe_response}
     except Exception:
         logger.exception("Error processing chat endpoint request")
         raise HTTPException(status_code=500, detail="Internal server error") from None
