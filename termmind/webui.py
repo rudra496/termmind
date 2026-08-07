@@ -3,7 +3,6 @@
 import contextlib
 import json
 import os
-import re
 import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler
