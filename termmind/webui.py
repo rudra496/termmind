@@ -1104,9 +1104,12 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         origin = self.headers.get("Origin", "")
-        clean_origin = re.match(r"^http://(localhost|127\.0\.0\.1)(:\d+)?$", origin.strip())
-        if clean_origin:
-            self.send_header("Access-Control-Allow-Origin", clean_origin.group(0))
+        if origin:
+            parsed = urllib.parse.urlparse(origin)
+            if parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1"):
+                port_str = f":{parsed.port}" if parsed.port else ""
+                clean_origin = f"http://{parsed.hostname}{port_str}"
+                self.send_header("Access-Control-Allow-Origin", clean_origin)
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 
@@ -1119,9 +1122,12 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:
         self.send_response(200)
         origin = self.headers.get("Origin", "")
-        clean_origin = re.match(r"^http://(localhost|127\.0\.0\.1)(:\d+)?$", origin.strip())
-        if clean_origin:
-            self.send_header("Access-Control-Allow-Origin", clean_origin.group(0))
+        if origin:
+            parsed = urllib.parse.urlparse(origin)
+            if parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1"):
+                port_str = f":{parsed.port}" if parsed.port else ""
+                clean_origin = f"http://{parsed.hostname}{port_str}"
+                self.send_header("Access-Control-Allow-Origin", clean_origin)
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()

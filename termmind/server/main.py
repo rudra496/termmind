@@ -30,10 +30,12 @@ orchestrator = Orchestrator()
 async def chat_endpoint(req: ChatRequest):
     """Simple REST endpoint for chat."""
     try:
-        response = orchestrator.run_task(req.message)
-        return {"response": response}
-    except Exception as e:
-        logger.exception("Error processing chat task: %s", e)
+        msg = str(req.message or "")
+        output = orchestrator.run_task(msg)
+        clean_response = str(output) if output is not None else ""
+        return {"response": clean_response}
+    except Exception:
+        logger.exception("Error processing chat endpoint request")
         raise HTTPException(status_code=500, detail="Internal server error") from None
 
 @app.websocket("/ws")
