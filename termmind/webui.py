@@ -1118,7 +1118,6 @@ def _get_safe_origin(origin: str) -> str:
     return ""
 
 
-class WebUIHandler(BaseHTTPRequestHandler):
     def _send_json(self, data: Any, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
