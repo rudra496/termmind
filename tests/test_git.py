@@ -109,7 +109,7 @@ class TestGitWithRemote:
             capture_output=True,
         )
         url = git_get_remote_url(str(repo_dir))
-        assert "github.com" in url
+        assert url.startswith("https://github.com/")
 
 
 class TestGitEdgeCases:

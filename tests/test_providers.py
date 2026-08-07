@@ -102,7 +102,7 @@ class TestOpenRouterProvider:
 class TestGeminiProvider:
     def test_defaults(self):
         p = GeminiProvider()
-        assert "googleapis.com" in p.base_url
+        assert p.base_url.startswith("https://generativelanguage.googleapis.com")
 
     def test_validate_connection_no_key(self):
         p = GeminiProvider()

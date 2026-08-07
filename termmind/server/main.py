@@ -2,12 +2,15 @@
 
 import asyncio
 import json
+import logging
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from termmind.agents.orchestrator import Orchestrator
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="TermMind API v2")
 
@@ -26,8 +29,12 @@ orchestrator = Orchestrator()
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     """Simple REST endpoint for chat."""
-    response = orchestrator.run_task(req.message)
-    return {"response": response}
+    try:
+        response = orchestrator.run_task(req.message)
+        return {"response": response}
+    except Exception as e:
+        logger.exception("Error processing chat task: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error") from None
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

@@ -3,6 +3,7 @@
 import contextlib
 import json
 import os
+import re
 import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler
@@ -1102,9 +1103,10 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
     def _send_json(self, data: Any, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        origin = self.headers.get("Origin")
-        if origin and (origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:")):
-            self.send_header("Access-Control-Allow-Origin", origin)
+        origin = self.headers.get("Origin", "")
+        clean_origin = re.match(r"^http://(localhost|127\.0\.0\.1)(:\d+)?$", origin.strip())
+        if clean_origin:
+            self.send_header("Access-Control-Allow-Origin", clean_origin.group(0))
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 
@@ -1116,9 +1118,10 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self) -> None:
         self.send_response(200)
-        origin = self.headers.get("Origin")
-        if origin and (origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:")):
-            self.send_header("Access-Control-Allow-Origin", origin)
+        origin = self.headers.get("Origin", "")
+        clean_origin = re.match(r"^http://(localhost|127\.0\.0\.1)(:\d+)?$", origin.strip())
+        if clean_origin:
+            self.send_header("Access-Control-Allow-Origin", clean_origin.group(0))
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
