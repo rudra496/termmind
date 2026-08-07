@@ -1092,13 +1092,6 @@ HTML_CONTENT = """<!DOCTYPE html>
 """
 
 
-class WebUIRequestHandler(BaseHTTPRequestHandler):
-    """HTTP Request Handler for TermMind Web UI."""
-
-    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
-        # Suppress logging in terminal to avoid cluttering TermMind output
-        pass
-
 ALLOWED_ORIGIN_MAP = {
     "localhost": "http://localhost",
     "127.0.0.1": "http://127.0.0.1",
@@ -1118,6 +1111,13 @@ def _get_safe_origin(origin: str) -> str:
     return ""
 
 
+class WebUIRequestHandler(BaseHTTPRequestHandler):
+    """HTTP Request Handler for TermMind Web UI."""
+
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+        # Suppress logging in terminal to avoid cluttering TermMind output
+        pass
+
     def _send_json(self, data: Any, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -1133,7 +1133,7 @@ def _get_safe_origin(origin: str) -> str:
         self.end_headers()
         self.wfile.write(html.encode("utf-8"))
 
-    def do_OPTIONS(self) -> None:
+    def do_OPTIONS(self) -> None:  # noqa: N802
         self.send_response(200)
         clean_origin = _get_safe_origin(self.headers.get("Origin", ""))
         if clean_origin:
@@ -1142,7 +1142,7 @@ def _get_safe_origin(origin: str) -> str:
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
-    def do_GET(self) -> None:
+    def do_GET(self) -> None:  # noqa: N802
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
 
@@ -1239,7 +1239,7 @@ def _get_safe_origin(origin: str) -> str:
 
         self.send_error(404, "Not Found")
 
-    def do_POST(self) -> None:
+    def do_POST(self) -> None:  # noqa: N802
         global session_messages, session_cost, session_tokens
 
         content_length = int(self.headers.get("Content-Length", 0))
