@@ -32,7 +32,11 @@ async def chat_endpoint(req: ChatRequest):
     try:
         msg = str(req.message or "")
         output = orchestrator.run_task(msg)
-        clean_response = str(output) if output is not None else ""
+        raw_str = str(output) if output is not None else ""
+        if "Traceback (most recent call last)" in raw_str:
+            clean_response = "Error processing request. Check server logs."
+        else:
+            clean_response = raw_str
         return {"response": clean_response}
     except Exception:
         logger.exception("Error processing chat endpoint request")

@@ -1099,16 +1099,32 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
         # Suppress logging in terminal to avoid cluttering TermMind output
         pass
 
+ALLOWED_ORIGIN_MAP = {
+    "localhost": "http://localhost",
+    "127.0.0.1": "http://127.0.0.1",
+}
+
+
+def _get_safe_origin(origin: str) -> str:
+    if not origin:
+        return ""
+    safe_hdr = origin.replace("\r", "").replace("\n", "")
+    parsed = urllib.parse.urlparse(safe_hdr)
+    if parsed.scheme == "http" and parsed.hostname in ALLOWED_ORIGIN_MAP:
+        base = ALLOWED_ORIGIN_MAP[parsed.hostname]
+        if parsed.port and isinstance(parsed.port, int) and 1 <= parsed.port <= 65535:
+            return f"{base}:{parsed.port}"
+        return base
+    return ""
+
+
+class WebUIHandler(BaseHTTPRequestHandler):
     def _send_json(self, data: Any, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        origin = self.headers.get("Origin", "")
-        if origin:
-            parsed = urllib.parse.urlparse(origin)
-            if parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1"):
-                port_str = f":{parsed.port}" if parsed.port else ""
-                clean_origin = f"http://{parsed.hostname}{port_str}"
-                self.send_header("Access-Control-Allow-Origin", clean_origin)
+        clean_origin = _get_safe_origin(self.headers.get("Origin", ""))
+        if clean_origin:
+            self.send_header("Access-Control-Allow-Origin", clean_origin)
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 
@@ -1120,13 +1136,9 @@ class WebUIRequestHandler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self) -> None:
         self.send_response(200)
-        origin = self.headers.get("Origin", "")
-        if origin:
-            parsed = urllib.parse.urlparse(origin)
-            if parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1"):
-                port_str = f":{parsed.port}" if parsed.port else ""
-                clean_origin = f"http://{parsed.hostname}{port_str}"
-                self.send_header("Access-Control-Allow-Origin", clean_origin)
+        clean_origin = _get_safe_origin(self.headers.get("Origin", ""))
+        if clean_origin:
+            self.send_header("Access-Control-Allow-Origin", clean_origin)
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
