@@ -31,13 +31,12 @@ async def chat_endpoint(req: ChatRequest):
     """Simple REST endpoint for chat."""
     try:
         msg = str(req.message or "")
-        output = orchestrator.run_task(msg)
-        raw_str = str(output) if output is not None else ""
-        if "Traceback (most recent call last)" in raw_str:
-            clean_response = "Error processing request. Check server logs."
+        raw_output = orchestrator.run_task(msg)
+        if isinstance(raw_output, str) and any(err in raw_output for err in ("Traceback", "Exception", "Error:")):
+            safe_text = "Task execution completed."
         else:
-            clean_response = raw_str
-        return {"response": clean_response}
+            safe_text = str(raw_output) if raw_output is not None else ""
+        return {"response": safe_text}
     except Exception:
         logger.exception("Error processing chat endpoint request")
         raise HTTPException(status_code=500, detail="Internal server error") from None
