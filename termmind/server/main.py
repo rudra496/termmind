@@ -40,9 +40,8 @@ async def chat_endpoint(req: ChatRequest):
     """Simple REST endpoint for chat."""
     try:
         msg = str(req.message or "")
-        output = orchestrator.run_task(msg)
-        safe_response = _sanitize_output(output)
-        return {"response": safe_response}
+        orchestrator.run_task(msg)
+        return {"response": "Task executed successfully"}
     except Exception:
         logger.exception("Error processing chat endpoint request")
         raise HTTPException(status_code=500, detail="Internal server error") from None
